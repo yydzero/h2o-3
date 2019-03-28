@@ -495,6 +495,8 @@ public class NewChunk extends Chunk {
           append2slow();
         if(!_sparseNA) {
           if(_missing == null) _missing = new BitSet();
+          if (_sparseLen >= (Integer.MAX_VALUE/2+1))
+            System.out.println("Oout");
           _missing.set(_sparseLen);
           if (_id != null) _id[_sparseLen] = _len;
           ++_sparseLen;

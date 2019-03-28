@@ -2,14 +2,12 @@ package water.parser;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Assert;
-import static org.junit.Assert.assertEquals;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import water.*;
 import water.api.schemas3.ParseSetupV3;
 import water.fvec.*;
-import water.util.FileUtils;
 import water.util.Log;
 import water.util.StringUtils;
 
@@ -19,6 +17,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+
+import static org.junit.Assert.assertEquals;
 
 public class ParserTest extends TestUtil {
   @BeforeClass static public void setup() { stall_till_cloudsize(1); }
@@ -1006,6 +1006,23 @@ public class ParserTest extends TestUtil {
     } finally {
       fkey.remove();
       fv.remove();
+    }
+  }
+  
+  @Test
+  public void testPUBDEV6373() throws IOException {
+    Scope.enter();
+    Frame f, g;
+    try {
+      for (int index=0; index < 1; index++) {
+        f = parse_test_file("smalldata/parser/pubdev_6373_sparse_NA.csv");
+        //g = parse_test_file("smalldata/parser/pubdev_6373_sparse_0.csv");
+        Scope.track(f);
+      }
+      //Scope.track(g);
+      System.out.println("Out");
+    } finally {
+      Scope.exit();
     }
   }
 

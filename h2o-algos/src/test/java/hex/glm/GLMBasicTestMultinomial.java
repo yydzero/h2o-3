@@ -508,6 +508,59 @@ public class GLMBasicTestMultinomial extends TestUtil {
     }
   }
 
+  @Test
+  public void testMultinomialADMMSpeedUp(){
+    Scope.enter();
+    Frame fr;
+    Random rand = new Random();
+    long seed = 12345;
+    rand.setSeed(seed);
+    int nclass = 3;
+    double threshold = 1e-10;
+
+    try {
+      fr = parse_test_file("smalldata/glm_test/multinomial_3Class_10KRow.csv");
+      for (String s : new String[]{"C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11", "C12", "C13",
+              "C14", "C15", "C16", "C17", "C18", "C19", "C20", "C79"}) {
+        Vec v = fr.remove(s);
+        fr.add(s, v.toCategoricalVec());
+        v.remove();
+      }
+      Scope.track(fr);
+
+      checkADMM(fr, 0,0.5, true, Solver.IRLSM_SPEEDUP);  // check with only enum columns with both
+
+    } finally {
+      Scope.exit();
+    }
+  }
+
+  public GLMModel checkADMM(Frame fr, double lambda, double alpha,
+                            boolean hasIntercept, Solver solver) {
+    Scope.enter();
+    DataInfo dinfo=null;
+    try {
+      GLMParameters params = new GLMParameters(Family.multinomial);
+      params._response_column = fr._names[fr.numCols()-1];
+      params._ignored_columns = new String[]{};
+      params._train = fr._key;
+  //    params._lambda = new double[]{lambda};
+  //    params._alpha = new double[]{alpha};
+      params._solver = solver;
+      if (!hasIntercept)
+        params._intercept = false;
+
+      GLMModel model = new GLM(params).trainModel().get();
+      Scope.track_generic(model);
+      return model;
+    } finally {
+      if (dinfo!=null)
+        dinfo.remove();
+      Scope.exit();
+    }
+  }
+
+
   /**
    * I am testing the generation of gram matrix and the XY
    */

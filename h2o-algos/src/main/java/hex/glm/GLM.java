@@ -805,7 +805,7 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
       // get cholesky of gram
       _chol = tempGram.cholesky(null, true, null);
       if (!_chol.isSPD())
-        throw new NonSPDMatrixException();
+        throw new NonSPDMatrixException("Gram is NonSPD.  Consider adding regularization, setting lambda and/or alpha > 0.");
       // solve for newBeta
       _chol.solve(newBeta);
       return newBeta;
@@ -1756,7 +1756,7 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
           _chol = gram.cholesky(null, true, null);
         }
         if (!_chol.isSPD())
-          throw new NonSPDMatrixException();
+          throw new NonSPDMatrixException("Gram is NonSPD.  Consider adding regularization, setting lambda and/or alpha > 0.");
       }
       gram.addDiag(ArrayUtils.mult(rhos, -1));
       ArrayUtils.mult(rhos, -1);

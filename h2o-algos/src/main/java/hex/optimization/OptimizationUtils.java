@@ -74,18 +74,20 @@ public class OptimizationUtils {
     int _nclass;      // number of classes default to one except for multinomial speedup
     int _coeffPClass; // number of coefficients per class
     public boolean _updateObj=false;
+    public int[] _icptInd;
     
     public SimpleBacktrackingLS(GradientSolver gslvr, double [] betaStart, double l1pen) {
-      this(gslvr, betaStart, l1pen, gslvr.getObjective(betaStart), false,  1,  betaStart.length, false);
+      this(gslvr, betaStart, l1pen, gslvr.getObjective(betaStart), false,  1,  betaStart.length, 
+              false, null);
     }
 
     public SimpleBacktrackingLS(GradientSolver gslvr, double [] betaStart, double l1pen, boolean speedup, int nclass,
-                                int coeffPClass, boolean updateVal) {
-      this(gslvr, betaStart, l1pen, gslvr.getObjective(betaStart), speedup, nclass, coeffPClass, updateVal);
+                                int coeffPClass, boolean updateVal, int[] icptInd) {
+      this(gslvr, betaStart, l1pen, gslvr.getObjective(betaStart), speedup, nclass, coeffPClass, updateVal, icptInd);
     }
     
     public SimpleBacktrackingLS(GradientSolver gslvr, double [] betaStart, double l1pen, GradientInfo ginfo, 
-                                boolean speedup, int nclass, int coeffPClass, boolean updateVal) {
+                                boolean speedup, int nclass, int coeffPClass, boolean updateVal, int[] icptInd) {
       _gslvr = gslvr;
       _beta = betaStart;
       _ginfo = ginfo;
@@ -93,7 +95,11 @@ public class OptimizationUtils {
       _multinomialSpeedup = speedup;
       _nclass = speedup?(nclass):1;
       _coeffPClass = speedup?coeffPClass:_beta.length;
-      _objVal = _ginfo._objVal + _l1pen * ArrayUtils.l1norm(_beta, true, _nclass, _coeffPClass);
+      if (speedup && (betaStart.length != coeffPClass*nclass)) { // we have shortened the coefficients for active predictors only
+        _icptInd=icptInd;
+        _objVal = _ginfo._objVal + _l1pen * ArrayUtils.l1norm(_beta, icptInd);
+      } else 
+        _objVal = _ginfo._objVal + _l1pen * ArrayUtils.l1norm(_beta, true, _nclass, _coeffPClass);
       _updateObj = updateVal;
     }
     public int nfeval() {return -1;}

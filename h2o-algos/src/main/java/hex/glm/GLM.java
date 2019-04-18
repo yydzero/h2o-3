@@ -387,9 +387,10 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
         case multinomial:
           if (_nclass <= 2)
             error("_family", H2O.technote(2, "Multinomial requires a categorical response with at least 3 levels (for 2 class problem use family=binomial."));
-          else if (_parms._solver.equals(Solver.IRLSM_SPEEDUP) || _parms._solver.equals(Solver.IRLSM_SPEEDUP_NO_ADMM)) {
+          else if (_parms._solver.equals(Solver.IRLSM_SPEEDUP) || _parms._solver.equals(Solver.IRLSM_SPEEDUP_NO_ADMM)
+          || _parms._solver.equals(Solver.IRLSM_SPEEDUP2)) {
             if (!_parms._intercept)
-              error("_family", "Multinomial with IRLSM_SPEEDUP or IRLSM_SPEEDUP_NO_ADMM will " +
+              error("_family", "Multinomial with IRLSM_SPEEDUP will " +
                       "require an intercept term." +
                       "  Set intercept to true.");
           }
@@ -707,7 +708,8 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
 
       if (s.equals(Solver.COORDINATE_DESCENT)) {
         fitCOD_multinomial(s);
-      } else if (s.equals(Solver.IRLSM_SPEEDUP) || s.equals(Solver.IRLSM_SPEEDUP_NO_ADMM)) {
+      } else if (s.equals(Solver.IRLSM_SPEEDUP) || s.equals(Solver.IRLSM_SPEEDUP_NO_ADMM)
+      || s.equals(Solver.IRLSM_SPEEDUP2)) {
         fitIRLSMSPEEDUP_multinomial(s);
       } else {
         double[] beta = _state.betaMultinomial();
@@ -721,12 +723,12 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
                     : new SimpleBacktrackingLS(_state.gslvrMultinomial(c), _state.betaMultinomial(c, beta), _state.l1pen());
 
             long t1 = System.currentTimeMillis();
-            // keep this even though it only calculate prob(yi=c) but I need the sum of exp
+            // keep this even though it only calculate prob(yi=c) but I need the sum of exp, full beta used here
             new GLMMultinomialUpdate(_state.activeDataMultinomial(), _job._key, beta, c).doAll(_state.activeDataMultinomial()._adaptedFrame);
             long t2 = System.currentTimeMillis();
-            ComputationState.GramXY gram = _state.computeGram(ls.getX(), s);
+            ComputationState.GramXY gram = _state.computeGram(ls.getX(), s);  // shortened coefficients
             long t3 = System.currentTimeMillis();
-            double[] betaCnd = ADMM_solve(gram.gram, gram.xy, _nclass);
+            double[] betaCnd = ADMM_solve(gram.gram, gram.xy, _nclass);       // shortened coefficients
 
             long t4 = System.currentTimeMillis();
             if (!onlyIcpt && !ls.evaluate(ArrayUtils.subtract(betaCnd, ls.getX(), betaCnd))) {
@@ -750,21 +752,27 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
       int coeffPClass = beta.length/_nclass;
       boolean firstIter = true;
       _state.setActiveClass(_nclass); // set ActiveClass to be number of class for IRLSM_SPEEDUP or IRLSM_SPEEDUP_NO_ADMM
+      int[] icptInd = new int[_nclass];
+      if (s.equals(Solver.IRLSM_SPEEDUP2)) {
+        for (int classInd = 0; classInd < _nclass; classInd++) {
+          icptInd[classInd] = _state.activeDataMultinomial(classInd).activeCols().length-1;
+        }
+      }
 
       do {
         beta = beta.clone();  // full length coeffs
         // check and walk through all classes
-        boolean onlyIcpt = true; 
+        boolean onlyIcpt = true;
         for (int classInd = 0; classInd < _nclass; classInd++) {
           onlyIcpt = onlyIcpt && (_state.activeDataMultinomial(classInd).fullN() == 0);
         }
         
         // generate an array of ls, should it be only one with giant stacks of class coeffs
         LineSearchSolver ls = (_state.l1pen() == 0)
-                ? new MoreThuente(_state.gslvrMultinomial(0), _state.betaMultinomial(), 
+                ? new MoreThuente(_state.gslvrMultinomial(0), _state.betaMultinomial(beta), 
                 _state.ginfoMultinomial())
-                : new SimpleBacktrackingLS(_state.gslvrMultinomial(0), _state.betaMultinomial(),
-                _state.l1pen(), true, _nclass, coeffPClass, firstIter);
+                : new SimpleBacktrackingLS(_state.gslvrMultinomial(0), _state.betaMultinomial(beta),
+                _state.l1pen(), true, _nclass, coeffPClass, firstIter, icptInd);
         
           long t1 = System.currentTimeMillis();
           // generate prediction output of each class and store results in _adaptedFrame
@@ -921,7 +929,7 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
               ls = (_state.l1pen() == 0 && !_state.activeBC().hasBounds())
                  ? new MoreThuente(_state.gslvr(),_state.beta(), _state.ginfo())
                  : new SimpleBacktrackingLS(_state.gslvr(),_state.beta().clone(), _state.l1pen(), _state.ginfo(), 
-                      false, 1, betaCnd.length, false);
+                      false, 1, betaCnd.length, false, null);
             if (!ls.evaluate(ArrayUtils.subtract(betaCnd, ls.getX(), betaCnd))) { // ls.getX() get the old beta value
               Log.info(LogMsg("Ls failed " + ls));
               return;
@@ -1172,6 +1180,7 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
       switch (solver) {
         case COORDINATE_DESCENT: // fall through to IRLSM
         case IRLSM_SPEEDUP:  
+        case IRLSM_SPEEDUP2:
         case IRLSM_SPEEDUP_NO_ADMM:
         case IRLSM:
           if(_parms._family == Family.multinomial)
@@ -1344,7 +1353,7 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
         if (_parms._family.equals(Family.ordinal))
           _dinfo.addResponse(new String[]{"__glm_ExpC", "__glm_ExpNPC"}, vecs); // store eta for class C and class C-1
         else if (_parms._family.equals(Family.multinomial) && (_parms._solver.equals(Solver.IRLSM_SPEEDUP) ||
-                _parms._solver.equals(Solver.IRLSM_SPEEDUP_NO_ADMM))) {
+                _parms._solver.equals(Solver.IRLSM_SPEEDUP_NO_ADMM) || (_parms._solver.equals(Solver.IRLSM_SPEEDUP2)))) {
           _dinfo.addResponse(new String[]{"__glm_sumExp", "__glm_logSumExp"}, vecs);
           _state._multinomialSpeedup = true;
         } else
@@ -2002,7 +2011,8 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
 
     @Override
     public GLMGradientInfo getGradient(double[] beta) {
-      if (_parms._solver.equals(Solver.IRLSM_SPEEDUP) || _parms._solver.equals(Solver.IRLSM_SPEEDUP_NO_ADMM)) { // do thing natively here
+      if (_parms._solver.equals(Solver.IRLSM_SPEEDUP) || _parms._solver.equals(Solver.IRLSM_SPEEDUP_NO_ADMM) ||
+              _parms._solver.equals(Solver.IRLSM_SPEEDUP2)) { // do thing natively here
         if (_betaMultinomialSpeedUp == null) {
           _betaMultinomialSpeedUp = MemoryManager.malloc8d(beta.length);
           System.arraycopy(beta, 0, _betaMultinomialSpeedUp, 0, beta.length);
@@ -2013,7 +2023,8 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
         double l2pen = ArrayUtils.l2norm2(_betaMultinomialSpeedUp, _dinfo._intercept, nclasses);
         double[] grad = gt.gradient();
         return new GLMGradientInfo(gt._likelihood, gt._likelihood * _parms._obj_reg + .5 * _l2pen * l2pen, grad);
-      } else if ((!(_parms._solver.equals(Solver.IRLSM_SPEEDUP)|| _parms._solver.equals(Solver.IRLSM_SPEEDUP_NO_ADMM))
+      } else if ((!(_parms._solver.equals(Solver.IRLSM_SPEEDUP)|| _parms._solver.equals(Solver.IRLSM_SPEEDUP_NO_ADMM)
+      || _parms._solver.equals(Solver.IRLSM_SPEEDUP2))
               &&_parms._family == Family.multinomial) || _parms._family == Family.ordinal) {
         if (_betaMultinomial == null) {
           int nclasses = beta.length / (_dinfo.fullN() + 1);

@@ -154,6 +154,19 @@ public class ArrayUtils {
     }
     return sum;
   }
+  public static double l1norm(double [] x, int[] icptInd){
+    double sum = 0;
+    int compareIndex = 0;
+    for (int index=0; index < x.length; index++)  {
+      if (index == icptInd[compareIndex]) {
+        compareIndex++;
+      } else {
+        sum+= x[index] >= 0? x[index]:-x[index];
+      }
+    }
+    return sum;
+  }
+  
   public static double linfnorm(double [] x, boolean skipLast){
     double res = Double.NEGATIVE_INFINITY;
     int last = x.length -(skipLast?1:0);

@@ -507,6 +507,34 @@ public class GLMBasicTestMultinomial extends TestUtil {
       new GLM(params);
     }
   }
+  
+  @Test
+  public void testADMMSpecial() {
+    Scope.enter();
+    Frame fr;
+    
+    try {
+      fr = parse_test_file("/Users/wendycwong/temp/glm_mult_slow/multinomial");
+      String responseName = fr._names[54];
+      Vec v = fr.remove(responseName);
+      fr.add(responseName, v.toCategoricalVec());
+      v.remove();
+      Scope.track(fr);
+      GLMParameters params = new GLMParameters(Family.multinomial);
+      params._response_column = responseName;
+      params._ignored_columns = new String[]{};
+      params._train = fr._key;
+   //   params._lambda = new double[]{lambda};
+     // params._alpha = new double[]{alpha};
+      params._solver = Solver.IRLSM;
+      //params._solver = Solver.IRLSM_SPEEDUP2;
+      GLMModel model = new GLM(params).trainModel().get();
+      Scope.track_generic(model);
+      System.out.println("Now what");
+    } finally {
+      Scope.exit();
+    }
+  }
 
   @Test
   public void testMultinomialADMMSpeedUp(){
@@ -526,7 +554,17 @@ public class GLMBasicTestMultinomial extends TestUtil {
         fr.add(s, v.toCategoricalVec());
         v.remove();
       }
-      Scope.track(fr);
+
+      GLMModel admml2penIRLSM = checkADMM(fr, lambda,0, true, Solver.IRLSM);
+      Scope.track_generic(admml2penIRLSM);
+      GLMModel admmbothreg2IRLSM = checkADMM(fr, lambda,0.5, true, Solver.IRLSM);
+      Scope.track_generic(admmbothreg2IRLSM);
+      
+      GLMModel admml2pen2 = checkADMM(fr, lambda,0, true, Solver.IRLSM_SPEEDUP2);
+      Scope.track_generic(admml2pen2);
+      GLMModel admmbothreg2 = checkADMM(fr, lambda,0.5, true, Solver.IRLSM_SPEEDUP2);
+      Scope.track_generic(admmbothreg2);
+      
       GLMModel admml2pen = checkADMM(fr, lambda,0, true, Solver.IRLSM_SPEEDUP);
       Scope.track_generic(admml2pen);
       GLMModel admmbothreg = checkADMM(fr, lambda,0.5, true, Solver.IRLSM_SPEEDUP);
@@ -550,7 +588,6 @@ public class GLMBasicTestMultinomial extends TestUtil {
   public GLMModel checkADMM(Frame fr, double lambda, double alpha, 
                         boolean hasIntercept, Solver solver) {
     Scope.enter();
-    DataInfo dinfo=null;
     try {
       GLMParameters params = new GLMParameters(Family.multinomial);
       params._response_column = fr._names[fr.numCols()-1];
@@ -565,8 +602,6 @@ public class GLMBasicTestMultinomial extends TestUtil {
       GLMModel model = new GLM(params).trainModel().get();
       return model;
     } finally {
-      if (dinfo!=null)
-        dinfo.remove();
       Scope.exit();
     }
   }

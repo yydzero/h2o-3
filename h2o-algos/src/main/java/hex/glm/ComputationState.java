@@ -44,6 +44,7 @@ public final class ComputationState {
   private final Job _job;
   private int _activeClass = -1;
   public boolean _multinomialSpeedup = false;
+  public int _totalActPred = 0; // store total number of active predictors for all classes
 
   /**
    *
@@ -235,9 +236,27 @@ public final class ComputationState {
     }
   }
 
-  public double [] betaMultinomial(){return _beta;}
-
-  public double[] betaMultinomial(int c, double[] beta) {
+  public double [] betaMultinomial(double[] beta){
+    if (_parms._solver.equals(GLMParameters.Solver.IRLSM_SPEEDUP2)) {
+      // only return stacked up active coefficients
+      double[] temp = new double[_totalActPred];
+      int startInd = 0;
+      for (int classInd = 0; classInd < _nclasses; classInd++) {
+        double[] tempOneClass = extractSubRange(_activeData.fullN() + 1, classInd, _activeDataMultinomial[classInd].activeCols(), beta);
+        System.arraycopy(tempOneClass, 0, temp, startInd, tempOneClass.length); 
+        startInd += tempOneClass.length;
+      }
+            return temp;
+    } else 
+      return _beta;
+  }
+  
+  public double[] betaMultinomial() {
+    return _beta;
+  }
+  
+  
+  public double[] betaMultinomial(int c, double[] beta) { // extract coeff for one class and active only
     return extractSubRange(_activeData.fullN() + 1, c, _activeDataMultinomial[c].activeCols(), beta);
   }
 
@@ -285,19 +304,38 @@ public final class ComputationState {
       super(fullInfo._likelihood, fullInfo._objVal, fullInfo._gradient);
       _fullInfo = fullInfo;
     }
+
+    public GLMSubsetGinfo(GLMGradientInfo fullInfo, double[] gradient) {
+      super(fullInfo._likelihood, fullInfo._objVal, gradient);
+      _fullInfo = fullInfo;
+    }
   }
   public GradientSolver gslvrMultinomial(final int c) {
     final double [] fullbeta = _beta.clone();
     return new GradientSolver() {
       @Override
       public GradientInfo getGradient(double[] beta) { // beta stores coeff of one class for other
-        if (_multinomialSpeedup) {
-          System.arraycopy(beta, 0, fullbeta, 0, fullbeta.length);  // just copy over the whole beta
-        } else
-          fillSubRange(_activeData.fullN() + 1, c, _activeDataMultinomial[c].activeCols(), beta, fullbeta); // todo: fix this for speedup
+        if (_multinomialSpeedup) {  // beta only contains active coefficients of all classes, need to expand it back to fullbeta
+          for (int classInd = 0; classInd < _nclasses; classInd++) {
+            fillSubRange(_activeData.fullN() + 1, classInd, _activeDataMultinomial[classInd].activeCols(), beta, fullbeta);
+          }
+         // System.arraycopy(beta, 0, fullbeta, 0, fullbeta.length);  // just copy over the whole beta
+        } else  // this is where the conversion from shortened to original length happens in order to do get Gradient
+          fillSubRange(_activeData.fullN() + 1, c, _activeDataMultinomial[c].activeCols(), beta, fullbeta);
 
-        GLMGradientInfo fullGinfo = _gslvr.getGradient(fullbeta);
-        return _multinomialSpeedup? new GLMSubsetGinfo(fullGinfo):new GLMSubsetGinfo(fullGinfo, _activeData.fullN() + 1, c, _activeDataMultinomial[c].activeCols());
+        GLMGradientInfo fullGinfo = _gslvr.getGradient(fullbeta); // this getGradient needs the full beta
+        if (_multinomialSpeedup) {
+
+          double[] currGradient = new double[beta.length];
+          int startInd = 0;
+          for (int classInd = 0; classInd < _nclasses; classInd++) {
+            double[] tempG = extractSubRange(_activeData.fullN() + 1, classInd, _activeDataMultinomial[classInd].activeCols(), fullGinfo._gradient);
+            System.arraycopy(tempG, 0, currGradient, startInd, tempG.length);
+            startInd += tempG.length;
+          }
+          return new GLMSubsetGinfo(fullGinfo, currGradient);
+        } else   
+          return new GLMSubsetGinfo(fullGinfo, _activeData.fullN() + 1, c, _activeDataMultinomial[c].activeCols());
       }
       @Override
       public GradientInfo getObjective(double[] beta) {return getGradient(beta);}
@@ -385,7 +423,7 @@ public final class ComputationState {
     _activeData = _dinfo;
     if (!_allIn) {
       if(_activeDataMultinomial == null)
-        _activeDataMultinomial = new DataInfo[_nclasses];
+        _activeDataMultinomial = new DataInfo[_nclasses]; // this array contains the active column indices and others
       final double rhs = _alpha * (2 * lambdaNew - lambdaOld);
       int [] cols = MemoryManager.malloc4(N*_nclasses);
 
@@ -427,6 +465,7 @@ public final class ComputationState {
         sum += classcols.length;
         _activeDataMultinomial[c] = _dinfo.filterExpandedColumns(classcols);
       }
+      _totalActPred = sum;
       assert _parms._max_active_predictors == -1 || sum <= _parms._max_active_predictors + _nclasses:"sum = " + sum + " max_active_preds = " + _parms._max_active_predictors + ", nclasses = " + _nclasses;
       _allIn = sum == N*_nclasses;
     }
@@ -677,7 +716,8 @@ public final class ComputationState {
     double obj_reg = _parms._obj_reg;
     if(_glmw == null) _glmw = new GLMModel.GLMWeightsFun(_parms);
     GLMTask.GLMIterationTask gt = new GLMTask.GLMIterationTask(_job._key, activeData, _glmw, beta,_activeClass, 
-            s.equals(GLMParameters.Solver.IRLSM_SPEEDUP)||s.equals(GLMParameters.Solver.IRLSM_SPEEDUP_NO_ADMM)).doAll(activeData._adaptedFrame);
+            s.equals(GLMParameters.Solver.IRLSM_SPEEDUP)||s.equals(GLMParameters.Solver.IRLSM_SPEEDUP_NO_ADMM)
+                    ||s.equals(GLMParameters.Solver.IRLSM_SPEEDUP2)).doAll(activeData._adaptedFrame);
     gt._gram.mul(obj_reg);
     ArrayUtils.mult(gt._xy,obj_reg);
     int [] activeCols = activeData.activeCols(); // the active columns here refer to the predictors....
@@ -701,7 +741,9 @@ public final class ComputationState {
   public GramXY computeGram(double [] beta, GLMParameters.Solver s){ // beta can contain coeff of all classes
     double obj_reg = _parms._obj_reg;
     boolean weighted = _parms._family != Family.gaussian || _parms._link != GLMParameters.Link.identity;
-    if(_parms._family == Family.multinomial && (s.equals(GLMParameters.Solver.IRLSM_SPEEDUP) || s.equals(GLMParameters.Solver.IRLSM_SPEEDUP_NO_ADMM)))// no caching
+    if(_parms._family == Family.multinomial && (s.equals(GLMParameters.Solver.IRLSM_SPEEDUP) 
+            || s.equals(GLMParameters.Solver.IRLSM_SPEEDUP2) 
+            || s.equals(GLMParameters.Solver.IRLSM_SPEEDUP_NO_ADMM)))// no caching
       return computeNewGram(activeDataMultinomial(),beta,s);
     else if (_parms._family == Family.multinomial)
       return computeNewGram(activeDataMultinomial(_activeClass),beta,s);

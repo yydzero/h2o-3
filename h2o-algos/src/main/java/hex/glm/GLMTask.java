@@ -1839,6 +1839,7 @@ public abstract class GLMTask  {
     double _sumsqe;
     int _c = -1;  // will represent number of multinomial classes during speedup
     boolean _multiClassSpeedup = false;
+    int[][] _activeColsAll; // store all active column indices per class
     double[][] _hessian;  // store hessian for multinomial speedup, reuse over multiple rows
     double[][] _xtx;      // generate transpose(x)*x;
     double[] _wz;       // store wz for multinomial speedup, reuse over multiple rows
@@ -1863,6 +1864,17 @@ public abstract class GLMTask  {
       _glmf = glmw;
       _c = c;
       _multiClassSpeedup=speedup;
+    }
+
+    public  GLMIterationTask(Key jobKey, DataInfo dinfo, GLMWeightsFun glmw, double [] beta, int c, boolean speedup,
+                             int[][] allactivecols) {
+      super(null,dinfo,jobKey);
+      _beta = beta; // beta contains all class coeffs stacked up for IRLSM_SPEEDUP multinomial
+      _ymu = null;
+      _glmf = glmw;
+      _c = c;
+      _multiClassSpeedup=speedup;
+      _activeColsAll = allactivecols;
     }
 
     @Override public boolean handlesSparseData(){return true;}

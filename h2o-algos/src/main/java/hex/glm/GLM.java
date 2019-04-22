@@ -754,8 +754,9 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
       _state.setActiveClass(_nclass); // set ActiveClass to be number of class for IRLSM_SPEEDUP or IRLSM_SPEEDUP_NO_ADMM
       int[] icptInd = new int[_nclass];
       if (s.equals(Solver.IRLSM_SPEEDUP2)) {
+        _state.setActiveColsAll();
         for (int classInd = 0; classInd < _nclass; classInd++) {
-          icptInd[classInd] = _state.activeDataMultinomial(classInd).activeCols().length-1;
+          icptInd[classInd] = _state.activeDataMultinomial(classInd).activeCols().length - 1;
         }
       }
 
@@ -777,9 +778,9 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
           long t1 = System.currentTimeMillis();
           // generate prediction output of each class and store results in _adaptedFrame
           new GLMMultinomialSpeedUpUpdate(_state.activeDataMultinomial(), 
-                  _job._key, beta, _nclass).doAll(_state.activeDataMultinomial()._adaptedFrame);
+                  _job._key, beta, _nclass).doAll(_state.activeDataMultinomial()._adaptedFrame);  // use full beta value
           long t2 = System.currentTimeMillis();
-          ComputationState.GramXY gram = _state.computeGram(ls.getX(), s); // use ls.getX() to get only one class of coeffs.
+          ComputationState.GramXY gram = _state.computeGram(ls.getX(), s); // use ls.getX() to get shortened coeffs.
           long t3 = System.currentTimeMillis();
           double[] betaCnd = s.equals(Solver.IRLSM_SPEEDUP)?ADMM_solve(gram.gram, gram.xy, _nclass)
                   :solveBeta(gram.gram, gram.xy, beta, _state.l1pen(), _state.l2pen());

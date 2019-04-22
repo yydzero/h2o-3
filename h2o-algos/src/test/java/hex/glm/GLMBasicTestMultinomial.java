@@ -524,10 +524,11 @@ public class GLMBasicTestMultinomial extends TestUtil {
       params._response_column = responseName;
       params._ignored_columns = new String[]{};
       params._train = fr._key;
+      params._seed = 12345;
    //   params._lambda = new double[]{lambda};
      // params._alpha = new double[]{alpha};
-      params._solver = Solver.IRLSM;
-      //params._solver = Solver.IRLSM_SPEEDUP2;
+     // params._solver = Solver.IRLSM;
+      params._solver = Solver.IRLSM_SPEEDUP2;
       GLMModel model = new GLM(params).trainModel().get();
       Scope.track_generic(model);
       System.out.println("Now what");

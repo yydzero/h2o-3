@@ -45,6 +45,7 @@ public final class ComputationState {
   private int _activeClass = -1;
   public boolean _multinomialSpeedup = false;
   public int _totalActPred = 0; // store total number of active predictors for all classes
+  public int[][] _activeColsAll; // store all active columns of all classes for multinomial classification
 
   /**
    *
@@ -66,6 +67,15 @@ public final class ComputationState {
   public double lambda(){return _lambda;}
   public void setLambdaMax(double lmax) {
     _lambdaMax = lmax;
+  }
+  public void setActiveColsAll() {
+    _activeColsAll = new int[_nclasses][];
+    for (int classInd=0; classInd < _nclasses; classInd++) {
+      int[] original = activeDataMultinomial(classInd)._activeCols;
+      int activeColsLen = original.length;
+      _activeColsAll[classInd] = new int[activeColsLen];
+      System.arraycopy(original, 0, _activeColsAll[classInd], 0, activeColsLen);
+    }
   }
   public void setLambda(double lambda) {
     adjustToNewLambda(0, _lambda);
@@ -717,7 +727,7 @@ public final class ComputationState {
     if(_glmw == null) _glmw = new GLMModel.GLMWeightsFun(_parms);
     GLMTask.GLMIterationTask gt = new GLMTask.GLMIterationTask(_job._key, activeData, _glmw, beta,_activeClass, 
             s.equals(GLMParameters.Solver.IRLSM_SPEEDUP)||s.equals(GLMParameters.Solver.IRLSM_SPEEDUP_NO_ADMM)
-                    ||s.equals(GLMParameters.Solver.IRLSM_SPEEDUP2)).doAll(activeData._adaptedFrame);
+                    ||s.equals(GLMParameters.Solver.IRLSM_SPEEDUP2), _activeColsAll).doAll(activeData._adaptedFrame);
     gt._gram.mul(obj_reg);
     ArrayUtils.mult(gt._xy,obj_reg);
     int [] activeCols = activeData.activeCols(); // the active columns here refer to the predictors....

@@ -596,6 +596,7 @@ public class GLMBasicTestMultinomial extends TestUtil {
       params._lambda = new double[]{lambda};
       params._alpha = new double[]{alpha};
       params._solver = solver;
+      params._max_iterations = 1;
       if (!hasIntercept)
         params._intercept = false;
       

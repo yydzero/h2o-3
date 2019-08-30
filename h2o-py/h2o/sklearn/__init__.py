@@ -79,8 +79,7 @@ def _get_custom_params(cls):
     if cls.__name__ in ['H2OAutoEncoderEstimator',
                         'H2OGeneralizedLowRankEstimator',
                         'H2OPrincipalComponentAnalysisEstimator',
-                        'H2OSingularValueDecompositionEstimator',
-                        'H2OTargetEncoderEstimator']:
+                        'H2OSingularValueDecompositionEstimator']:
         custom.update(predictions_col='all')  # `predict` will return all columns (instead of a vector by default).
     if cls.__name__ in ['H2OGeneralizedLinearEstimator']:
         custom.update(distribution_param='family')  # use algo `family` param to identify distribution (default is `distribution`).
@@ -106,8 +105,7 @@ def _estimator_supports_predict_proba(cls):
                                 'H2OIsolationForestEstimator',
                                 'H2OKMeansEstimator',
                                 'H2OPrincipalComponentAnalysisEstimator',
-                                'H2OSingularValueDecompositionEstimator',
-                                'H2OTargetEncoderEstimator']
+                                'H2OSingularValueDecompositionEstimator']
 
 
 def _estimator_supports_score(cls):
@@ -116,16 +114,14 @@ def _estimator_supports_score(cls):
                                 'H2OIsolationForestEstimator',
                                 'H2OKMeansEstimator',
                                 'H2OPrincipalComponentAnalysisEstimator',
-                                'H2OSingularValueDecompositionEstimator',
-                                'H2OTargetEncoderEstimator']
+                                'H2OSingularValueDecompositionEstimator']
 
 
 def _estimator_supports_transform(cls):
     return cls.__name__ in ['H2OAggregatorEstimator',
                             'H2OGeneralizedLowRankEstimator',
                             'H2OPrincipalComponentAnalysisEstimator',
-                            'H2OSingularValueDecompositionEstimator',
-                            'H2OTargetEncoderEstimator']
+                            'H2OSingularValueDecompositionEstimator']
 
 
 def _order_estimator_mixins(cls, base=None, extra=None, type='estimator'):
@@ -216,7 +212,6 @@ _generic_only_estimators = (  # e.g. unsupervised and misc estimators
     'H2OKMeansEstimator',
     'H2OPrincipalComponentAnalysisEstimator',
     'H2OSingularValueDecompositionEstimator',
-    'H2OTargetEncoderEstimator',
     'H2OWord2vecEstimator',
 )
 _classifier_only_estimators = ('H2ONaiveBayesEstimator',

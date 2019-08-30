@@ -59,10 +59,7 @@ def class_extensions():
 
 extensions = dict(
     __imports__="""import h2o""",
-    __class__=class_extensions,
-    __init__validation="""
-if "Lambda" in kwargs: kwargs["lambda_"] = kwargs.pop("Lambda")
-"""
+    __class__=class_extensions
 )
 
 overrides = dict(

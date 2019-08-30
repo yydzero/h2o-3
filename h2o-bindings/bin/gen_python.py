@@ -41,7 +41,6 @@ class PythonTypeTranslatorForCheck(bi.TypeTranslator):
         self.types["Polymorphic"] = "object"
         self.types["Object"] = "object"
         self.types["VecSpecifier"] = "str"
-        self.types["BlendingParams"] = "dict"
         self.types["StringPair"] = "tuple"
         self.types["KeyValue"] = "dict"
         self.make_array = lambda vtype: "dict" if vtype == "dict" else "[%s]" % vtype
@@ -75,7 +74,6 @@ class PythonTypeTranslatorForDoc(bi.TypeTranslator):
         self.types["Polymorphic"] = "object"
         self.types["Object"] = "object"
         self.types["VecSpecifier"] = "str"
-        self.types["BlendingParams"] = "dict"
         self.types["StringPair"] = "tuple"
         self.types["KeyValue"] = "dict"
         self.make_array = lambda vtype: "dict" if vtype == "dict" else "List[%s]" % vtype
@@ -220,6 +218,7 @@ def gen_module(schema, algo):
     yield "        self._parms = {}"
     if class_init_validation:
         yield reformat_block(class_init_validation, 8)
+    yield '        if "Lambda" in kwargs: kwargs["lambda_"] = kwargs.pop("Lambda")'
     yield "        for pname, pvalue in kwargs.items():"
     yield "            if pname == 'model_id':"
     yield "                self._id = pvalue"
@@ -318,7 +317,6 @@ def algo_to_classname(algo):
     if algo == "stackedensemble": return "H2OStackedEnsembleEstimator"
     if algo == "isolationforest": return "H2OIsolationForestEstimator"
     if algo == "psvm": return "H2OSupportVectorMachineEstimator"
-    if algo == "targetencoder": return "H2OTargetEncoderEstimator"
     return "H2O" + algo.capitalize() + "Estimator"
 
 

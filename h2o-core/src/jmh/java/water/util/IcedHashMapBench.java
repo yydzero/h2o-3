@@ -18,8 +18,8 @@ import java.util.concurrent.TimeUnit;
 
 
 @Fork(value = 1, jvmArgsAppend = "-Xmx12g")
-@Warmup(iterations = 2)
-@Measurement(iterations = 5)
+@Warmup(iterations = 3)
+@Measurement(iterations = 10)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 public class IcedHashMapBench {

@@ -258,21 +258,31 @@ public abstract class ModelingStep<M extends Model> extends Iced<ModelingStep> {
             else
                 builder._parms._max_runtime_secs = Math.min(builder._parms._max_runtime_secs, aml().timeRemainingMs() / 1e3);
 
-            runModelTrainingJob(key, algoName, builder).get();
+            ModelBuilder clonedModelBuilder = ModelBuilder.make(builder._parms);
+            clonedModelBuilder.init(false);
+
+            Job<M> baselineModelJob = runModelTrainingJob(key, algoName, builder);
+            baselineModelJob.get();
             Model retrievedBaselineModel = DKV.getGet(builder.dest());
-            double baselineScore = retrievedBaselineModel._output._cross_validation_metrics.auc_obj()._auc; // TODO need to choose corresponding metric here
+            double baselineLoss = retrievedBaselineModel.loss();
 
             // Attempt to beat base line model performance with data preprocessing
 
-            ModelPipelineBuilder modelPipelineBuilder = new ModelPipelineBuilder(builder);
+
+            ModelPipelineBuilder modelPipelineBuilder = new ModelPipelineBuilder(clonedModelBuilder);
 
             // for now we use universal preprocessing which does not depend on type of model at this particular ModelingStep. Can be instantiated once.
             PreprocessingStep[] steps = new UniversalPreprocessingSteps(aml()).getSteps();
             Arrays.stream(steps).forEach(preprocessingStep -> {
-                preprocessingStep.applyIfUseful(builder, modelPipelineBuilder, baselineScore);
+                preprocessingStep.applyIfUseful(clonedModelBuilder, modelPipelineBuilder, baselineLoss);
             });
 
-            return runModelTrainingJob(key, algoName, modelPipelineBuilder);
+            if(modelPipelineBuilder.getPreprocessingModels().size() > 0 ) {
+                final Key<M> keyModelPipeline = Key.make(key + "_pipeline");
+                return runModelTrainingJob(keyModelPipeline, algoName, modelPipelineBuilder);
+            } else {
+                return baselineModelJob;
+            }
         }
 
         private Job<M> runModelTrainingJob(Key<M> key, String algoName, ModelBuilder builder) {

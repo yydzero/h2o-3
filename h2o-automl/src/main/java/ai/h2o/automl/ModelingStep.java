@@ -9,7 +9,8 @@ import ai.h2o.automl.preprocessing.UniversalPreprocessingSteps;
 import hex.Model;
 import hex.Model.Parameters.FoldAssignmentScheme;
 import hex.ModelBuilder;
-import hex.ModelPipelineBuilder;
+import hex.PipelineModelBuilder;
+import hex.PipelineModel;
 import hex.ScoreKeeper.StoppingMetric;
 import hex.ensemble.StackedEnsembleModel;
 import hex.grid.Grid;
@@ -258,28 +259,26 @@ public abstract class ModelingStep<M extends Model> extends Iced<ModelingStep> {
             else
                 builder._parms._max_runtime_secs = Math.min(builder._parms._max_runtime_secs, aml().timeRemainingMs() / 1e3);
 
-            ModelBuilder clonedModelBuilder = ModelBuilder.make(builder._parms);
-            clonedModelBuilder.init(false);
-
             Job<M> baselineModelJob = runModelTrainingJob(key, algoName, builder);
             baselineModelJob.get();
             Model retrievedBaselineModel = DKV.getGet(builder.dest());
             double baselineLoss = retrievedBaselineModel.loss();
 
             // Attempt to beat base line model performance with data preprocessing
+            ModelBuilder clonedModelBuilder = ModelBuilder.make(builder._parms);
 
-
-            ModelPipelineBuilder modelPipelineBuilder = new ModelPipelineBuilder(clonedModelBuilder);
+            PipelineModel.PipelineModelParameters pipelineModelParameters = new PipelineModel.PipelineModelParameters();
+            PipelineModelBuilder pipelineModelBuilder = new PipelineModelBuilder(pipelineModelParameters, clonedModelBuilder);
 
             // for now we use universal preprocessing which does not depend on type of model at this particular ModelingStep. Can be instantiated once.
             PreprocessingStep[] steps = new UniversalPreprocessingSteps(aml()).getSteps();
             Arrays.stream(steps).forEach(preprocessingStep -> {
-                preprocessingStep.applyIfUseful(clonedModelBuilder, modelPipelineBuilder, baselineLoss);
+                preprocessingStep.applyIfUseful(clonedModelBuilder, pipelineModelBuilder, baselineLoss);
             });
 
-            if(modelPipelineBuilder.getPreprocessingModels().size() > 0 ) {
+            if(pipelineModelBuilder.getPreprocessingModels().size() > 0 ) {
                 final Key<M> keyModelPipeline = Key.make(key + "_pipeline");
-                return runModelTrainingJob(keyModelPipeline, algoName, modelPipelineBuilder);
+                return runModelTrainingJob(keyModelPipeline, algoName, pipelineModelBuilder);
             } else {
                 return baselineModelJob;
             }

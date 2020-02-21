@@ -30,10 +30,10 @@ class H2OXGBoostEstimator(H2OEstimator):
                    "learn_rate", "eta", "sample_rate", "subsample", "col_sample_rate", "colsample_bylevel",
                    "col_sample_rate_per_tree", "colsample_bytree", "max_abs_leafnode_pred", "max_delta_step",
                    "monotone_constraints", "score_tree_interval", "min_split_improvement", "gamma", "nthread",
-                   "save_matrix_directory", "build_tree_one_node", "calibrate_model", "calibration_frame", "max_bins",
-                   "max_leaves", "min_sum_hessian_in_leaf", "min_data_in_leaf", "sample_type", "normalize_type",
-                   "rate_drop", "one_drop", "skip_drop", "tree_method", "grow_policy", "booster", "reg_lambda",
-                   "reg_alpha", "dmatrix_type", "backend", "gpu_id"}
+                   "save_matrix_directory", "build_tree_one_node", "load_matrix_directory", "calibrate_model",
+                   "calibration_frame", "max_bins", "max_leaves", "min_sum_hessian_in_leaf", "min_data_in_leaf",
+                   "sample_type", "normalize_type", "rate_drop", "one_drop", "skip_drop", "tree_method", "grow_policy",
+                   "booster", "reg_lambda", "reg_alpha", "dmatrix_type", "backend", "gpu_id"}
 
     def __init__(self, **kwargs):
         super(H2OXGBoostEstimator, self).__init__()
@@ -1527,6 +1527,21 @@ class H2OXGBoostEstimator(H2OEstimator):
     def build_tree_one_node(self, build_tree_one_node):
         assert_is_type(build_tree_one_node, None, bool)
         self._parms["build_tree_one_node"] = build_tree_one_node
+
+
+    @property
+    def load_matrix_directory(self):
+        """
+        Directory where matrices from XGBoost library are stored.
+
+        Type: ``str``.
+        """
+        return self._parms.get("load_matrix_directory")
+
+    @load_matrix_directory.setter
+    def load_matrix_directory(self, load_matrix_directory):
+        assert_is_type(load_matrix_directory, None, str)
+        self._parms["load_matrix_directory"] = load_matrix_directory
 
 
     @property

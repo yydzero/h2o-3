@@ -6,10 +6,15 @@ import hex.tree.xgboost.XGBoostUtils;
 import water.*;
 import water.fvec.Frame;
 import water.fvec.Vec;
+import water.util.FileUtils;
 import water.util.IcedHashMapGeneric;
 import water.util.Log;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.Map;
 
 /**
@@ -53,7 +58,7 @@ public class XGBoostSetupTask extends AbstractXGBoostTask<XGBoostSetupTask> {
         Log.info("Saving node-local portion of XGBoost training dataset to " + path.getAbsolutePath() + ".");
         matrix.saveBinary(path.getAbsolutePath());
       }
-    } catch (XGBoostError xgBoostError) {
+    } catch (XGBoostError|IOException xgBoostError) {
       throw new IllegalStateException("Failed XGBoost training.", xgBoostError);
     }
 
@@ -67,7 +72,35 @@ public class XGBoostSetupTask extends AbstractXGBoostTask<XGBoostSetupTask> {
     thread.start(); // we do not need to wait for the Updater to init Rabit - subsequent tasks will wait
   }
 
-  private DMatrix makeLocalMatrix() throws XGBoostError {
+  private DMatrix makeLocalMatrix() throws XGBoostError, IOException {
+    if (_parms._load_matrix_directory != null) {
+      return makeLocalMatrixFromFS();
+    } else {
+      return makeLocalMatrixFromTrainingFrame();
+    }
+  }
+
+  private DMatrix makeLocalMatrixFromFS() throws IOException, XGBoostError {
+    String location = _parms._load_matrix_directory;
+    if (!location.endsWith("/")) location = location + "/";
+    location = location + "matrix.part" + H2O.SELF.index();
+    ArrayList<String> keys = new ArrayList<>();
+    H2O.getPM().importFiles(location, "", new ArrayList<>(), keys, new ArrayList<>(), new ArrayList<>());
+    Value value = DKV.get(keys.get(0));
+    byte[] matrixData = H2O.getPM().getPersistForURI(FileUtils.getURI(location)).load(value);
+    File tempFile = null;
+    try {
+      tempFile = File.createTempFile("xgb", ".dmatrix");
+      try (FileOutputStream out = new FileOutputStream(tempFile)) {
+        out.write(matrixData);
+      }
+      return new DMatrix(tempFile.getAbsolutePath());
+    } finally {
+      if (tempFile != null) tempFile.delete();
+    }
+  }
+
+  private DMatrix makeLocalMatrixFromTrainingFrame() throws XGBoostError {
       return XGBoostUtils.convertFrameToDMatrix(
               _sharedModel.dataInfo(),
               _trainFrame,

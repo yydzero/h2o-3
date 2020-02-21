@@ -60,6 +60,7 @@ public class XGBoostV3 extends ModelBuilderSchema<XGBoost,XGBoostV3,XGBoostV3.XG
         "nthread",
         "save_matrix_directory",
         "build_tree_one_node",
+        "load_matrix_directory",
 
         //platt scaling
         "calibrate_model",
@@ -150,6 +151,9 @@ public class XGBoostV3 extends ModelBuilderSchema<XGBoost,XGBoostV3,XGBoostV3.XG
 
     @API(help = "Directory where to save matrices passed to XGBoost library. Useful for debugging.", level = API.Level.expert)
     public String save_matrix_directory;
+
+    @API(help = "Directory where matrices from XGBoost library are stored.", level = API.Level.expert)
+    public String load_matrix_directory;
 
     @API(help="Use Platt Scaling to calculate calibrated class probabilities. Calibration can provide more accurate estimates of class probabilities.", level = API.Level.expert)
     public boolean calibrate_model;

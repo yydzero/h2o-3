@@ -210,6 +210,10 @@ h2o.getModel <- function(model_id) {
     }
   })
 
+  # Store base models for the Stacked Ensemble in user-readable form
+  if (json$algo == "stackedensemble"){
+    model$base_models <- unlist(lapply(parameters$base_models, function (base_model) base_model$name))
+  }
 
   # Convert ignored_columns/response_column to valid R x/y
 

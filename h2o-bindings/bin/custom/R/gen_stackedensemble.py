@@ -56,6 +56,7 @@ if (!missing(metalearner_params))
 if (!missing(metalearner_params)) {
     model@parameters$metalearner_params <- list(fromJSON(model@parameters$metalearner_params))[[1]] #Need the `[[ ]]` to avoid a nested list
 }
+model@model$base_models <- unlist(lapply(model@parameters$base_models, function (base_model) base_model$name))
 model@model$model_summary <- capture.output({
 
   print_ln <- function(...) cat(..., sep = "\\n")

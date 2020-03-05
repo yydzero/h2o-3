@@ -86,6 +86,15 @@ model@model$model_summary <- capture.output({
 
 })
 class(model@model$model_summary) <- "h2o.stackedEnsemble.summary"
+""",
+    module="""
+#' Returns metalearner for a given stacked ensemble
+#'
+#' @param ensemble Stacked ensemble with the metalearner we want to retrieve
+#' @export
+h2o.getMetalearner <- function(ensemble){
+    return(h2o.getModel(ensemble@model$metalearner$name))
+}
 """
 )
 

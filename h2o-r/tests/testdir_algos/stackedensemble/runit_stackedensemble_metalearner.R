@@ -109,6 +109,8 @@ stackedensemble.metalearner.test <- function() {
   meta4 <- h2o.getModel(stack4@model$metalearner$name)
   expect_equal(meta4@algorithm, "deeplearning")
 
+  # PUBDEV-6955 - Add h2o.getMetalearner
+  expect_equal(h2o.getMetalearner(stack4)@model_id, meta4@model_id)
 }
 
 doTest("Stacked Ensemble metalearner Test", stackedensemble.metalearner.test)

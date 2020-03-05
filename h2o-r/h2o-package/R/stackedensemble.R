@@ -166,3 +166,13 @@ h2o.stackedEnsemble <- function(x,
   class(model@model$model_summary) <- "h2o.stackedEnsemble.summary"
   return(model)
 }
+
+
+#' Returns metalearner for a given stacked ensemble
+#'
+#' @param ensemble Stacked ensemble with the metalearner we want to retrieve
+#' @export
+h2o.getMetalearner <- function(ensemble){
+    return(h2o.getModel(ensemble@model$metalearner$name))
+}
+

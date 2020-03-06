@@ -44,7 +44,8 @@ public class StackedEnsembleV99 extends ModelBuilderSchema<StackedEnsemble,Stack
       "metalearner_params",
       "seed",
       "keep_levelone_frame",
-      "export_checkpoints_dir"
+      "export_checkpoints_dir",
+      "te_model_id"
     };
 
 

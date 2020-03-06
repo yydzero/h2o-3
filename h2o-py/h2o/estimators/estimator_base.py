@@ -266,20 +266,6 @@ class H2OEstimator(ModelBase):
         model_json = h2o.api("GET /%d/Models/%s" % (rest_ver, model.dest_key))["models"][0]
         self._resolve_model(model.dest_key, model_json)
 
-    @property
-    def te_model_key(self):
-        """
-        Key of TargetEncoder model that will be used as an encoder if one was added before.
-
-        Type: ``str``  (default: ``None``).
-
-        """
-        return self._parms.get("te_model_key")
-
-    @te_model_key.setter
-    def te_model_key(self, te_model_key):
-        assert_is_type(te_model_key, None, str)
-        self._parms["te_model_key"] = te_model_key
 
     def _print_model_scoring_history(self, job, bar_progress=0):
         """

@@ -37,7 +37,7 @@ public class SegmentModelsBuilderTest {
 
       SegmentModelsBuilder.SegmentModelsParameters smParms = new SegmentModelsBuilder.SegmentModelsParameters();
       smParms._segments = segments._key;
-      SegmentModels segmentModels = new SegmentModelsBuilder(Key.make(), smParms, parms).buildSegmentModels().get();
+      SegmentModels segmentModels = new SegmentModelsBuilder(smParms, parms).buildSegmentModels().get();
       Scope.track_generic(segmentModels);
 
       Frame smFrame = segmentModels.toFrame();

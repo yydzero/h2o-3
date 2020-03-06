@@ -10,11 +10,21 @@ import water.parser.BufferedString;
 import water.util.ArrayUtils;
 import water.util.StringUtils;
 
+/**
+ * Collection of Segment Models
+ */
 public class SegmentModels extends Keyed<SegmentModels> {
 
   private final Frame _segments;
   private final Vec _results;
 
+  /**
+   * Initialize the Segment Models structure, allocates keys for each SegmentModelResult
+   * 
+   * @param key destination key
+   * @param segments segments
+   * @return instance of SegmentModels
+   */
   public static SegmentModels make(Key<SegmentModels> key, Frame segments) {
     SegmentModels segmentModels = new SegmentModels(key, segments);
     DKV.put(segmentModels);
@@ -33,9 +43,14 @@ public class SegmentModels extends Keyed<SegmentModels> {
     DKV.put(result);
     return result;
   }
-  
+
+  /**
+   * Converts the collection of Segment Models to a Frame representation
+   * 
+   * @return Frame with segment column, followed by job status, model key, error and warning columns 
+   */
   public Frame toFrame() {
-    Frame result = new Frame(_segments);
+    Frame result = _segments.deepCopy(null); // never expose the underlying Segments Frame (someone could delete it)
     Frame models = new ToFrame().doAll(new byte[]{Vec.T_CAT, Vec.T_STR, Vec.T_STR, Vec.T_STR}, new Frame(_results))
             .outputFrame(
                     new String[]{"Status", "Model", "Errors", "Warnings"},
@@ -51,18 +66,22 @@ public class SegmentModels extends Keyed<SegmentModels> {
   }
 
   static class SegmentModelResult extends Keyed<SegmentModelResult> {
-    Key<Model> _model;
-    Job.JobStatus _status;
-    String[] _errors;
-    String[] _warns;
+    final Key<Model> _model;
+    final Job.JobStatus _status;
+    final String[] _errors;
+    final String[] _warns;
 
     @SuppressWarnings("unchecked")
     SegmentModelResult(Key<SegmentModelResult> selfKey, ModelBuilder mb, Exception e) {
-      super(selfKey);
-      _status = mb._job.getStatus();
-      _model = mb._result;
-      _errors = getErrors(mb, e);
-      _warns = mb._job.warns();
+      this(selfKey, mb._result, mb._job.getStatus(), getErrors(mb, e), mb._job.warns());
+    }
+
+    SegmentModelResult(Key<SegmentModelResult> key, Key<Model> model, Job.JobStatus status, String[] errors, String[] warns) {
+      super(key);
+      _model = model;
+      _status = status;
+      _errors = errors;
+      _warns = warns;
     }
 
     private static String[] getErrors(ModelBuilder mb, Exception e) {
@@ -76,6 +95,10 @@ public class SegmentModels extends Keyed<SegmentModels> {
       return errors;
     }
 
+    @Override
+    public String toString() {
+      return "model=" + _model + ", status=" + _status;
+    }
   }
 
   private static class MakeResultKeys extends MRTask<MakeResultKeys> {

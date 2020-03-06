@@ -6,33 +6,34 @@ import water.fvec.Frame;
 import water.fvec.NewChunk;
 import water.fvec.Vec;
 import water.rapids.ast.prims.mungers.AstGroup;
+import water.util.Log;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class SegmentModelsBuilder {
 
-  private final Key<SegmentModels> _dest;
+  private static final AtomicLong nextSegmentModelsNum = new AtomicLong(0);
+
   private final SegmentModelsParameters _parms;
   private final Model.Parameters _blueprintParms;
 
-  public SegmentModelsBuilder(Key<SegmentModels> dest, SegmentModelsParameters parms,
-                              Model.Parameters blueprintParms) {
-    _dest = dest;
+  public SegmentModelsBuilder(SegmentModelsParameters parms, Model.Parameters blueprintParms) {
     _parms = parms;
     _blueprintParms = blueprintParms;
   }
 
   public Job<SegmentModels> buildSegmentModels() {
-    final Job<SegmentModels> job = new Job<>(_dest, SegmentModels.class.getName(), _blueprintParms.algoName());
     final Frame segments;
     if (_parms._segments != null) {
       segments = validateSegmentsFrame(_parms._segments, _parms._segment_columns);
     } else {
       segments = makeSegmentsFrame(_blueprintParms._train, _parms._segment_columns);
     }
+    final Job<SegmentModels> job = new Job<>(makeDestKey(), SegmentModels.class.getName(), _blueprintParms.algoName());
     SegmentModeledBuilderTask segmentBuilder = new SegmentModeledBuilderTask(
             job, segments, _blueprintParms._train, _blueprintParms._valid);
     return job.start(segmentBuilder, segments.numRows());
@@ -43,6 +44,13 @@ public class SegmentModelsBuilder {
     return new AstGroup()
             .performGroupingWithAggregations(train, train.find(segmentColumns), new AstGroup.AGG[0])
             .getFrame();
+  }
+
+  private Key<SegmentModels> makeDestKey() {
+    if (_parms._segment_models_id != null)
+      return _parms._segment_models_id;
+    String id = H2O.calcNextUniqueObjectId("segment_models", nextSegmentModelsNum, _blueprintParms.algoName());
+    return Key.make(id);
   }
 
   private static Frame validateSegmentsFrame(Key<Frame> segmentsKey, String[] segmentColumns) {
@@ -78,7 +86,7 @@ public class SegmentModelsBuilder {
     public void compute2() {
       try {
         _blueprintParms.read_lock_frames(_job);
-        SegmentModels segmentModels = SegmentModels.make(_dest, _segments);
+        SegmentModels segmentModels = SegmentModels.make(_job._result, _segments);
         buildModels(segmentModels);
       } finally {
         _blueprintParms.read_unlock_frames(_job);
@@ -109,7 +117,8 @@ public class SegmentModelsBuilder {
           failure = e;
         } finally {
           _job.update(1);
-          segmentModels.addResult(segmentIdx, builder, failure);
+          SegmentModels.SegmentModelResult result = segmentModels.addResult(segmentIdx, builder, failure);
+          Log.info("Finished building a model for segment id=", segmentIdx, ", result: ", result);
           cleanUp(builder);
         }
       }
@@ -193,6 +202,7 @@ public class SegmentModelsBuilder {
   }
 
   public static class SegmentModelsParameters extends Iced<SegmentModelsParameters> {
+    Key<SegmentModels> _segment_models_id;
     Key<Frame> _segments;
     String[] _segment_columns;
   }

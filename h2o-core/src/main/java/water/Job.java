@@ -26,7 +26,7 @@ public final class Job<T extends Keyed> extends Keyed<Job> {
     PENDING,
     RUNNING,
     SUCCEEDED,
-    CANCELED,
+    STOPPED,
     FAILED;
 
     public static String[] domain() {
@@ -112,12 +112,12 @@ public final class Job<T extends Keyed> extends Keyed<Job> {
 
   public JobStatus getStatus() {
     if (isCrashed())
-      if (isCancelledException(ex()))
-        return JobStatus.CANCELED;
-      else
-        return JobStatus.FAILED;
+      return JobStatus.FAILED;
     else if (isStopped())
-      return JobStatus.SUCCEEDED;
+      if (stop_requested())
+        return JobStatus.STOPPED;
+      else
+        return JobStatus.SUCCEEDED;
     else if (isRunning())
       return JobStatus.RUNNING;
     else

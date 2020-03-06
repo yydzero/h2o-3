@@ -116,7 +116,7 @@ class H2OEstimator(ModelBase):
 
     def bulk_train(self, x=None, y=None, training_frame=None, offset_column=None, fold_column=None,
                    weights_column=None, validation_frame=None, max_runtime_secs=None, ignored_columns=None,
-                   segments=None, verbose=False):
+                   segments=None, segment_models_id=None, verbose=False):
         """
         Trains H2O model for each segment of the training dataset.
 
@@ -135,7 +135,9 @@ class H2OEstimator(ModelBase):
         :param segments: A list of columns to segment-by. H2O will group the training (and validation) dataset
             by the segment-by columns and train a separate model for each segment (group of rows).
             As an alternative to providing a list of columns, users can also supply an explicit enumeration of
-            segments to build the models for. This enumeration needs to be represented as H2OFrame.          
+            segments to build the models for. This enumeration needs to be represented as H2OFrame.
+        :param segment_models_id: Identifier for the returned collection of Segment Models. If not specified
+            it will be automatically generated.  
         :param bool verbose: Enable to print additional information during model building. Defaults to False.
 
         :examples:
@@ -156,6 +158,7 @@ class H2OEstimator(ModelBase):
         """
         assert_is_type(segments, None, H2OFrame, [str])
         assert_is_type(verbose, bool)
+        assert_is_type(segment_models_id, None, str)
 
         if not segments:
             raise H2OValueError("Parameter segments was not specified. Please provide either a list of columns to "
@@ -170,7 +173,9 @@ class H2OEstimator(ModelBase):
             parms["segments"] = H2OEstimator._keyify_if_h2oframe(segments)
         else:
             parms["segment_columns"] = segments
-        
+        if segment_models_id:
+            parms["segment_models_id"] = segment_models_id
+
         rest_ver = self._get_rest_version(parms)
         bulk_train_response = h2o.api("POST /%d/BulkModelBuilders/%s" % (rest_ver, self.algo), data=parms)
         job = H2OJob(bulk_train_response, job_type=(self.algo + " Bulk Model Build"))

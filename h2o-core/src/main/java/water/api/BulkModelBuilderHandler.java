@@ -30,8 +30,7 @@ public class BulkModelBuilderHandler<B extends ModelBuilder, S extends ModelBuil
     final String algoURLName = ModelBuilderHandlerUtils.parseAlgoURLName(route);
     final B builder = ModelBuilderHandlerUtils.makeBuilder(version, algoURLName, modelParms);
 
-    Job<SegmentModels> job = new SegmentModelsBuilder(Key.make(), smParms, builder._parms)
-            .buildSegmentModels();
+    Job<SegmentModels> job = new SegmentModelsBuilder(smParms, builder._parms).buildSegmentModels();
 
     JobV3 schema = new JobV3();
     schema.fillFromImpl(job);

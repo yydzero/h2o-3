@@ -6,10 +6,6 @@
 #
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from h2o.estimators.estimator_base import H2OEstimator
-from h2o.exceptions import H2OValueError
-from h2o.frame import H2OFrame
-from h2o.utils.typechecks import assert_is_type, Enum, numeric
 import ast
 import json
 import warnings
@@ -17,6 +13,10 @@ import warnings
 import h2o
 from h2o.utils.shared_utils import quoted
 from h2o.utils.typechecks import is_type
+from h2o.estimators.estimator_base import H2OEstimator
+from h2o.exceptions import H2OValueError
+from h2o.frame import H2OFrame
+from h2o.utils.typechecks import assert_is_type, Enum, numeric
 
 
 class H2OStackedEnsembleEstimator(H2OEstimator):
@@ -714,7 +714,7 @@ class H2OStackedEnsembleEstimator(H2OEstimator):
         ...                                           seed=1,
         ...                                           keep_levelone_frame=True)
         >>> stack_blend.train(x=x, y=y, training_frame=train, blending_frame=blend)
-        >>> stack_blend.metalearner
+        >>> stack_blend.metalearner()
         """
         def _get_item(self, key):
             warnings.warn(

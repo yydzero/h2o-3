@@ -43,7 +43,7 @@ def class_extensions():
         ...                                           seed=1,
         ...                                           keep_levelone_frame=True)
         >>> stack_blend.train(x=x, y=y, training_frame=train, blending_frame=blend)
-        >>> stack_blend.metalearner
+        >>> stack_blend.metalearner()
         """
         def _get_item(self, key):
             warnings.warn(

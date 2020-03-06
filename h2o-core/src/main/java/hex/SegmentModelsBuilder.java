@@ -112,7 +112,7 @@ public class SegmentModelsBuilder {
         try {
           builder.init(false);
           if (builder.error_count() == 0)
-            builder.trainModelOnH2ONode().get();
+            builder.trainModel().get();
         } catch (Exception e) {
           failure = e;
         } finally {

@@ -1,7 +1,9 @@
 package hex.gam;
 
+import hex.DataInfo;
 import hex.gam.GAMModel.GAMParameters.BSType;
 import hex.glm.GLMModel;
+import hex.glm.GLMTask;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import water.DKV;
@@ -41,9 +43,9 @@ public class GamTestPiping extends TestUtil {
       double[][] knots = new double[1][];
       knots[0] = new double[]{-1.99905699, -0.98143075, 0.02599159, 1.00770987, 1.99942290};
       GAMModel model = getModel(GLMModel.GLMParameters.Family.gaussian,
-              "smalldata/glm_test/multinomial_10_classes_10_cols_10000_Rows_train.csv", "C11",
-              gamCols, ignoredCols, new int[]{5}, new BSType[]{BSType.cr}, false, true, knots, 
-              new double[]{0.5}, new double[]{0}, new double[]{0});  // do not save Z mat
+              Scope.track(parse_test_file("smalldata/glm_test/multinomial_10_classes_10_cols_10000_Rows_train.csv")),
+              "C11", gamCols, ignoredCols, new int[]{5}, new BSType[]{BSType.cr}, false, 
+              true, knots, new double[]{1}, new double[]{0}, new double[]{0});
       Scope.track_generic(model);
       double[][] rBinvD = new double[][]{{1.5605080,
               -3.5620961, 2.5465468, -0.6524143, 0.1074557}, {-0.4210098, 2.5559955, -4.3258597, 2.6228736,
@@ -100,9 +102,9 @@ public class GamTestPiping extends TestUtil {
               -1.005257990, -0.006716042, 1.002197392, 1.999073589}, {-1.999675688, -0.979893796, 0.007573327,
               1.011437347, 1.999611676}};
       GAMModel model = getModel(GLMModel.GLMParameters.Family.gaussian,
-              "smalldata/glm_test/multinomial_10_classes_10_cols_10000_Rows_train.csv", "C11",
-              gamCols, ignoredCols, new int[]{5,5,5}, new BSType[]{BSType.cr,BSType.cr,BSType.cr}, false, true, knots, 
-              new double[]{0.5,0.5,0.5}, new double[]{0,0,0}, new double[]{0,0,0});  // do not save Z mat
+              Scope.track(parse_test_file("smalldata/glm_test/multinomial_10_classes_10_cols_10000_Rows_train.csv"))
+              , "C11", gamCols, ignoredCols, new int[]{5,5,5}, new BSType[]{BSType.cr,BSType.cr,BSType.cr},
+              false, true, knots, new double[]{1,1,1}, new double[]{0,0,0}, new double[]{0,0,0});
       Scope.track_generic(model);
       double[][][] rBinvD = new double[][][]{{{1.5605080,
               -3.5620961, 2.5465468, -0.6524143, 0.1074557}, {-0.4210098, 2.5559955, -4.3258597, 2.6228736,
@@ -140,13 +142,12 @@ public class GamTestPiping extends TestUtil {
   }
 
   
-  public GAMModel getModel(GLMModel.GLMParameters.Family family, String fileName, String responseColumn,
+  public GAMModel getModel(GLMModel.GLMParameters.Family family, Frame train, String responseColumn,
                            String[] gamCols, String[] ignoredCols, int[] numKnots, BSType[] bstypes, boolean saveZmat,
                            boolean savePenalty, double[][] knots, double[] scale, double[] alpha, double[] lambda) {
     GAMModel gam = null;
     try {
       Scope.enter();
-      Frame train = parse_test_file(fileName);
       // set cat columns
       int numCols = train.numCols();
       int enumCols = (numCols - 1) / 2;
@@ -187,77 +188,63 @@ public class GamTestPiping extends TestUtil {
     return gam;
   }
 
+  /**
+   * The following test makes sure that we have added the smooth term to the gradient, hessian and likelihood/objective
+   * calculation to GAM
+   */
   @Test
-  public void testAdaptFrame2GAMColumns() {
+  public void testGradientTask() {
     try {
       Scope.enter();
-      Frame train = parse_test_file("./smalldata/gam_test/gamDataRegressionTwoFuns.csv");
-      Scope.track(train);
-      GAMModel.GAMParameters parms = new GAMModel.GAMParameters();
-      parms._bs = new BSType[]{BSType.cr, BSType.cr};
-      parms._k = new int[]{6, 6};
-      parms._response_column = train.name(3);
-      parms._ignored_columns = new String[]{train.name(0), train.name(1), train.name(2)}; // row of ids
-      parms._gam_X = new String[]{train.name(1), train.name(2)};
-      parms._train = train._key;
-      parms._family = GLMModel.GLMParameters.Family.gaussian;
-      parms._link = GLMModel.GLMParameters.Link.family_default;
-      parms._saveZMatrix = true;
-      parms._saveGamCols = true;
+      String[] ignoredCols = new String[]{"C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10"};
+      String[] gamCols = new String[]{"C6", "C7", "C8"};
+      int numGamCols = gamCols.length;
+      double[][] knots = new double[][]{{-1.99905699, -0.98143075, 0.02599159, 1.00770987, 1.99942290},{-1.999821861,
+              -1.005257990, -0.006716042, 1.002197392, 1.999073589}, {-1.999675688, -0.979893796, 0.007573327,
+              1.011437347, 1.999611676}};
+      GAMModel model = getModel(GLMModel.GLMParameters.Family.gaussian,
+              Scope.track(parse_test_file("smalldata/glm_test/multinomial_10_classes_10_cols_10000_Rows_train.csv")), "C11",
+              gamCols, ignoredCols, new int[]{5,5,5}, new BSType[]{BSType.cr,BSType.cr,BSType.cr}, false, 
+              true, knots, new double[]{1,1,1}, new double[]{0,0,0}, new double[]{0,0,0});
+      Scope.track_generic(model);      
+      double[] beta = model._output._model_beta;  // start model here
+      Frame dataFrame = ((Frame) DKV.getGet(model._output._gamTransformedTrainCenter)); // actual data used
+      for (String cname : ignoredCols)
+        Scope.track(dataFrame.remove(cname));
+      Scope.track(dataFrame);
+      GLMModel.GLMParameters glmParms = setGLMParamsFromGamParams(model._parms, dataFrame);
+      double[][][] penalty_mat = model._output._penaltyMatrices_center;
+      DataInfo dinfo = new DataInfo(dataFrame, null, 1,
+              glmParms._use_all_factor_levels || glmParms._lambda_search, glmParms._standardize ? 
+              DataInfo.TransformType.STANDARDIZE : DataInfo.TransformType.NONE, DataInfo.TransformType.NONE, 
+              true, false, false, false, false, false);
+      DKV.put(dinfo._key, dinfo);
+      Scope.track_generic(dinfo);
+      GLMTask.GLMGaussianGradientTask gradientTaskNoPenalty = (GLMTask.GLMGaussianGradientTask) 
+              new GLMTask.GLMGaussianGradientTask(null,dinfo, glmParms,1,
+                      beta).doAll(dinfo._adaptedFrame);
+      int[][] gamCoeffIndices = new int[][]{{},{},{}};
+      GLMTask.GLMGaussianGradientTask gradientTaskPenalty = (GLMTask.GLMGaussianGradientTask)
+              new GLMTask.GLMGaussianGradientTask(null,dinfo, glmParms,1,
+                      beta, model._output._penaltyMatrices_center, gamCoeffIndices).doAll(dinfo._adaptedFrame);
 
-      GAMModel model = new GAM(parms).trainModel().get();
-      Frame transformedData = ((Frame) DKV.getGet(model._output._gamTransformedTrain));
-      Scope.track(transformedData);
-      Frame predictF = Scope.track(model.score(train)); // predict with train data
-      Scope.track(predictF);
-      System.out.println("Wow");
-      Scope.track_generic(model);
+
+
+
     } finally {
       Scope.exit();
     }
   }
-
-  @Test
-  public void testGAMGaussian() {
-    try {
-      Scope.enter();
-      Frame train = parse_test_file("./smalldata/glm_test/gaussian_20cols_10000Rows.csv");
-      int numCols = train.numCols();
-      int enumCols = (numCols - 1) / 2;
-      for (int cindex = 0; cindex < enumCols; cindex++) {
-        train.replace(cindex, train.vec(cindex).toCategoricalVec()).remove();
-      }
-      String[] ignoredCols = new String[]{"C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11", "C12", "C13", "C14",
-              "C15", "C16", "C17", "C18", "C19", "C20"};
-      String[] gamCols = new String[]{"C11", "C12"};
-      DKV.put(train);
-      Scope.track(train);
-
-      GAMModel.GAMParameters parms = new GAMModel.GAMParameters();
-      parms._bs = new BSType[]{BSType.cr, BSType.cr};
-      parms._k = new int[]{6, 6};
-      parms._response_column = "C21";
-      parms._ignored_columns = ignoredCols;
-      parms._gam_X = gamCols;
-      parms._train = train._key;
-      parms._family = GLMModel.GLMParameters.Family.gaussian;
-      parms._link = GLMModel.GLMParameters.Link.family_default;
-      parms._saveZMatrix = true;
-      parms._saveGamCols = true;
-      parms._standardize = true;
-
-      GAMModel model = new GAM(parms).trainModel().get();
-      Frame transformedData = ((Frame) DKV.getGet(model._output._gamTransformedTrain));
-      Scope.track(transformedData);
-/*      Frame predictF = Scope.track(model.score(train)); // predict with train data
-      Scope.track(predictF);*/
-      System.out.println("Wow");
-      Scope.track_generic(model);
-    } finally {
-      Scope.exit();
-    }
+  
+  public GLMModel.GLMParameters setGLMParamsFromGamParams(GAMModel.GAMParameters gamP, Frame trainFrame) {
+    GLMModel.GLMParameters parms = new GLMModel.GLMParameters();
+    parms._family = gamP._family;
+    parms._response_column = gamP._response_column;
+    parms._train = trainFrame._key;
+    parms._ignored_columns = gamP._ignored_columns;
+    return parms;
   }
-
+  
   @Test
   public void testStandardizedCoeff() {
     String[] ignoredCols = new String[]{"C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11", "C12", "C13", "C14", "C15",

@@ -206,7 +206,6 @@ public class GamUtils {
       final Frame predictVec = new Frame(new String[]{parms._gam_X[index]}, new Vec[]{orig.vec(parms._gam_X[index])});  // extract the vector to work on
       final int numKnots = parms._k[index];  // grab number of knots to generate
       final int numKnotsM1 = numKnots-1;
-      final double scale = parms._scale == null ? 1.0 : parms._scale[index];
       final GAMParameters.BSType splineType = parms._bs[index];
       final int frameIndex = index;
       final String[] newColNames = new String[numKnots];
@@ -222,8 +221,8 @@ public class GamUtils {
         @Override
         protected void compute() {
           GenerateGamMatrixOneColumn genOneGamCol = new GenerateGamMatrixOneColumn(splineType, numKnots, 
-                  nullKnots?null:knotsMat[frameIndex], predictVec, parms._standardize, centerGAM, 
-                  scale).doAll(numKnots, Vec.T_NUM, predictVec);
+                  nullKnots?null:knotsMat[frameIndex], predictVec, parms._standardize, 
+                  centerGAM).doAll(numKnots, Vec.T_NUM, predictVec);
           Frame oneAugmentedColumn = genOneGamCol.outputFrame(Key.make(), newColNames,
                   null);
           gamFrameKeys[frameIndex] = oneAugmentedColumn._key;

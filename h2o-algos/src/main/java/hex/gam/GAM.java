@@ -246,6 +246,12 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
     
     GLMModel buildGLMModel(GAMParameters parms, Frame trainData) {
       GLMParameters glmParam = GamUtils.copyGAMParams2GLMParams(parms, trainData);  // copy parameter from GAM to GLM
+      int numGamCols = _parms._gam_X.length;
+      for (int find = 0; find < numGamCols; find++) {
+        if (_parms._scale[find] != 1.0)
+          _penalty_mat_center[find] = ArrayUtils.mult(_penalty_mat_center[find], _parms._scale[find]);
+      }
+        
       GLMModel model = new GLM(glmParam, _penalty_mat_center, _centerGAM? _gamColNamesCenter : _gamColNames).trainModel().get();
       return model;
     }

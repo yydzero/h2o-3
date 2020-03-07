@@ -30,14 +30,14 @@ public class GenerateGamMatrixOneColumn extends MRTask<GenerateGamMatrixOneColum
   double _s_scale;
   
   public GenerateGamMatrixOneColumn(BSType splineType, int numKnots, double[] knots, Frame gamx, boolean standardize,
-                                    boolean centerGam, double penalty_scale) {
+                                    boolean centerGam) {
     _splineType = splineType;
     _numKnots = numKnots;
     _mean = standardize?gamx.vec(0).mean():0;
     _oneOSigma = 1.0/(standardize?gamx.vec(0).sigma():1);
     CubicRegressionSplines crSplines = new CubicRegressionSplines(numKnots, knots, gamx.vec(0).max(), gamx.vec(0).min());
     _bInvD = crSplines.gen_BIndvD(crSplines._hj);
-    _penaltyMat = crSplines.gen_penalty_matrix(ArrayUtils.mult(crSplines._hj, penalty_scale), _bInvD);
+    _penaltyMat = crSplines.gen_penalty_matrix(crSplines._hj, _bInvD);
     _gamX = gamx;
     _centerGAM = centerGam;
     _knots = new double[numKnots];

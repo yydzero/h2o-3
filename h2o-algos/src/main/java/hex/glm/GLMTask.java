@@ -746,7 +746,7 @@ public abstract class GLMTask  {
     }
   }
 
-  static class GLMGaussianGradientTask extends GLMGradientTask {
+  public static class GLMGaussianGradientTask extends GLMGradientTask {
     public GLMGaussianGradientTask(Key jobKey, DataInfo dinfo, GLMParameters parms, double lambda, double [] beta) {
       super(jobKey,dinfo,parms._obj_reg,lambda,beta);
       assert parms._family == Family.gaussian && parms._link == Link.identity;

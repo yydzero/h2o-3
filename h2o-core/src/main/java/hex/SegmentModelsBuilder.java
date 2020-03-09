@@ -19,11 +19,11 @@ public class SegmentModelsBuilder {
   private static final AtomicLong nextSegmentModelsNum = new AtomicLong(0);
 
   private final SegmentModelsParameters _parms;
-  private final Model.Parameters _blueprintParms;
+  private final Model.Parameters _blueprint_parms;
 
   public SegmentModelsBuilder(SegmentModelsParameters parms, Model.Parameters blueprintParms) {
     _parms = parms;
-    _blueprintParms = blueprintParms;
+    _blueprint_parms = blueprintParms;
   }
 
   public Job<SegmentModels> buildSegmentModels() {
@@ -31,11 +31,11 @@ public class SegmentModelsBuilder {
     if (_parms._segments != null) {
       segments = validateSegmentsFrame(_parms._segments, _parms._segment_columns);
     } else {
-      segments = makeSegmentsFrame(_blueprintParms._train, _parms._segment_columns);
+      segments = makeSegmentsFrame(_blueprint_parms._train, _parms._segment_columns);
     }
-    final Job<SegmentModels> job = new Job<>(makeDestKey(), SegmentModels.class.getName(), _blueprintParms.algoName());
-    SegmentModeledBuilderTask segmentBuilder = new SegmentModeledBuilderTask(
-            job, segments, _blueprintParms._train, _blueprintParms._valid);
+    final Job<SegmentModels> job = new Job<>(makeDestKey(), SegmentModels.class.getName(), _blueprint_parms.algoName());
+    SegmentModelsBuilderTask segmentBuilder = new SegmentModelsBuilderTask(
+            job, segments, _blueprint_parms._train, _blueprint_parms._valid);
     return job.start(segmentBuilder, segments.numRows());
   }
 
@@ -49,7 +49,7 @@ public class SegmentModelsBuilder {
   private Key<SegmentModels> makeDestKey() {
     if (_parms._segment_models_id != null)
       return _parms._segment_models_id;
-    String id = H2O.calcNextUniqueObjectId("segment_models", nextSegmentModelsNum, _blueprintParms.algoName());
+    String id = H2O.calcNextUniqueObjectId("segment_models", nextSegmentModelsNum, _blueprint_parms.algoName());
     return Key.make(id);
   }
 
@@ -68,14 +68,14 @@ public class SegmentModelsBuilder {
     return segments;
   }
   
-  private class SegmentModeledBuilderTask extends H2O.H2OCountedCompleter<SegmentModeledBuilderTask> {
+  private class SegmentModelsBuilderTask extends H2O.H2OCountedCompleter<SegmentModelsBuilderTask> {
     private final Job<SegmentModels> _job;
     private final Frame _segments;
     private final Frame _full_train;
     private final Frame _full_valid;
 
-    private SegmentModeledBuilderTask(Job<SegmentModels> job, Frame segments, 
-                                      Key<Frame> train, Key<Frame> valid) {
+    private SegmentModelsBuilderTask(Job<SegmentModels> job, Frame segments,
+                                     Key<Frame> train, Key<Frame> valid) {
       _job = job;
       _segments = segments;
       _full_train = reorderColumns(train);
@@ -85,11 +85,12 @@ public class SegmentModelsBuilder {
     @Override
     public void compute2() {
       try {
-        _blueprintParms.read_lock_frames(_job);
+        _blueprint_parms.read_lock_frames(_job);
         SegmentModels segmentModels = SegmentModels.make(_job._result, _segments);
-        buildModels(segmentModels);
+        new LocalSegmentModelsBuilder(_job, _blueprint_parms, _segments, _full_train, _full_valid).
+                buildModels(segmentModels);
       } finally {
-        _blueprintParms.read_unlock_frames(_job);
+        _blueprint_parms.read_unlock_frames(_job);
         if (_segments._key == null) { // segments frame was auto-generated 
           _segments.remove();
         }
@@ -97,6 +98,38 @@ public class SegmentModelsBuilder {
       tryComplete();
     }
     
+    private Frame reorderColumns(Key<Frame> key) {
+      if (key == null)
+        return null;
+      Frame f = key.get();
+      if (f == null) {
+        throw new IllegalStateException("Key " + key + " doesn't point to an existing Frame.");
+      }
+      Frame mutating = new Frame(f);
+      Frame reordered = new Frame(_segments.names(), mutating.vecs(_segments.names()))
+              .add(mutating.remove(_segments.names()));
+      reordered._key = f._key;
+      return reordered;
+    }
+
+  }
+
+  private static class LocalSegmentModelsBuilder {
+    private final Job<SegmentModels> _job;
+    private final Model.Parameters _blueprint_parms;
+    private final Frame _segments;
+    private final Frame _full_train;
+    private final Frame _full_valid;
+
+    public LocalSegmentModelsBuilder(Job<SegmentModels> job, Model.Parameters blueprint_parms, 
+                                     Frame segments, Frame fullTrain, Frame fullValid) {
+      _job = job;
+      _blueprint_parms = blueprint_parms;
+      _segments = segments;
+      _full_train = fullTrain;
+      _full_valid = fullValid;
+    }
+
     void buildModels(SegmentModels segmentModels) {
       Vec.Reader[] segmentVecReaders = new Vec.Reader[_segments.numCols()];
       for (int i = 0; i < segmentVecReaders.length; i++)
@@ -130,14 +163,14 @@ public class SegmentModelsBuilder {
       Keyed.remove(builder._parms._valid, fs, true);
       fs.blockForPending();
     }
-    
+
     private ModelBuilder makeBuilder(long segmentIdx, double[] segmentVals) {
-      ModelBuilder builder = ModelBuilder.make(_blueprintParms);
+      ModelBuilder builder = ModelBuilder.make(_blueprint_parms);
       builder._parms._train = makeSegmentFrame(_full_train, segmentIdx, segmentVals);
       builder._parms._valid = makeSegmentFrame(_full_valid, segmentIdx, segmentVals);
       return builder;
     }
-    
+
     private Key<Frame> makeSegmentFrame(Frame f, long segmentIdx, double[] segmentVals) {
       if (f == null)
         return null;
@@ -148,23 +181,8 @@ public class SegmentModelsBuilder {
       assert segmentFrameKey.equals(segmentFrame._key);
       return segmentFrameKey;
     }
-    
-    private Frame reorderColumns(Key<Frame> key) {
-      if (key == null)
-        return null;
-      Frame f = key.get();
-      if (f == null) {
-        throw new IllegalStateException("Key " + key + " doesn't point to an existing Frame.");
-      }
-      Frame mutating = new Frame(f);
-      Frame reordered = new Frame(_segments.names(), mutating.vecs(_segments.names()))
-              .add(mutating.remove(_segments.names()));
-      reordered._key = f._key;
-      return reordered;
-    }
-
   }
-
+  
   private static class MakeSegmentFrame extends MRTask<MakeSegmentFrame> {
     private final double[] _match_row;
 

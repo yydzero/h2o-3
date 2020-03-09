@@ -83,7 +83,7 @@ A ``find_synonyms`` function can be used to find synonyms in a Word2vec model. T
 More information about this function can be found in the H2O-3 GitHub repository:
 
 - R: `https://github.com/h2oai/h2o-3/blob/master/h2o-r/h2o-package/R/w2vutils.R#L2 <https://github.com/h2oai/h2o-3/blob/master/h2o-r/h2o-package/R/w2vutils.R#L2>`__
-- Python: `https://github.com/h2oai/h2o-3/blob/master/h2o-py/h2o/model/word_embedding.py#L16 <https://github.com/h2oai/h2o-3/blob/master/h2o-py/h2o/model/word_embedding.py#L16>`__
+- Python: `https://github.com/h2oai/h2o-3/blob/master/h2o-py/h2o/model/word_embedding.py#L17 <https://github.com/h2oai/h2o-3/blob/master/h2o-py/h2o/model/word_embedding.py#L17>`__
 
 Transforming Words to Vectors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -98,10 +98,10 @@ A ``transform`` function is available for use with Word2vec. This function trans
 - ``words``: An H2O Frame made of a single column containing source words. Note that you can specify to include a subset of this frame.
 - ``aggregate_method``: Specifies how to aggregate sequences of words. If the method is ``NONE``, then no aggregation is performed, and each input word is mapped to a single word-vector. If the method is ``AVERAGE``, then the input is treated as sequences of words delimited by NA. Each word of a sequences is internally mapped to a vector, and vectors belonging to the same sentence are averaged and returned in the result.
 
-More information about this function can be found in the H2O-3 GitHub repository:
+More information about the ``h2o.transform()`` function can be found in the H2O-3 GitHub repository:
 
-- R: `https://github.com/h2oai/h2o-3/blob/master/h2o-r/h2o-package/R/w2vutils.R#L21 <https://github.com/h2oai/h2o-3/blob/master/h2o-r/h2o-package/R/w2vutils.R#L21>`__
-- Python: `https://github.com/h2oai/h2o-3/blob/master/h2o-py/h2o/model/word_embedding.py#L28 <https://github.com/h2oai/h2o-3/blob/master/h2o-py/h2o/model/word_embedding.py#L28>`__
+- R: `https://github.com/h2oai/h2o-3/blob/master/h2o-r/h2o-package/R/w2vutils.R#L33 <hhttps://github.com/h2oai/h2o-3/blob/master/h2o-r/h2o-package/R/w2vutils.R#L33>`__
+- Python: `https://github.com/h2oai/h2o-3/blob/master/h2o-py/h2o/model/word_embedding.py#L41 <https://github.com/h2oai/h2o-3/blob/master/h2o-py/h2o/model/word_embedding.py#L41>`__
 
 References
 ~~~~~~~~~~

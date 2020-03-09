@@ -1,6 +1,6 @@
 package water.rapids.ast.prims.models;
 
-import hex.SegmentModels;
+import hex.segments.SegmentModels;
 import water.rapids.Env;
 import water.rapids.ast.AstPrimitive;
 import water.rapids.ast.AstRoot;

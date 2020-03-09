@@ -1,5 +1,6 @@
 package hex;
 
+import hex.segments.SegmentModels;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import water.*;

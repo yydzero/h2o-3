@@ -2,7 +2,7 @@ package water.api.schemas3;
 
 import hex.Model;
 import hex.PartialDependence;
-import hex.SegmentModels;
+import hex.segments.SegmentModels;
 import hex.grid.Grid;
 import water.*;
 import water.api.API;

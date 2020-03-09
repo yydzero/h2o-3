@@ -1,5 +1,7 @@
-package hex;
+package hex.segments;
 
+import hex.Model;
+import hex.ModelBuilder;
 import water.*;
 import water.api.schemas3.KeyV3;
 import water.fvec.Chunk;
@@ -73,7 +75,7 @@ public class SegmentModels extends Keyed<SegmentModels> {
 
     @SuppressWarnings("unchecked")
     SegmentModelResult(Key<SegmentModelResult> selfKey, ModelBuilder mb, Exception e) {
-      this(selfKey, mb._result, mb._job.getStatus(), getErrors(mb, e), mb._job.warns());
+      this(selfKey, mb.dest(), mb._job.getStatus(), getErrors(mb, e), mb._job.warns());
     }
 
     SegmentModelResult(Key<SegmentModelResult> key, Key<Model> model, Job.JobStatus status, String[] errors, String[] warns) {

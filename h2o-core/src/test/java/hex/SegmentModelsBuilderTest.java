@@ -1,5 +1,7 @@
 package hex;
 
+import hex.segments.SegmentModels;
+import hex.segments.SegmentModelsBuilder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import water.DKV;

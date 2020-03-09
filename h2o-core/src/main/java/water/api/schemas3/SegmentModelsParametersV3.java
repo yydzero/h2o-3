@@ -1,6 +1,6 @@
 package water.api.schemas3;
 
-import hex.SegmentModelsBuilder;
+import hex.segments.SegmentModelsBuilder;
 import water.api.API;
 
 public class SegmentModelsParametersV3 extends SchemaV3<SegmentModelsBuilder.SegmentModelsParameters, SegmentModelsParametersV3> {

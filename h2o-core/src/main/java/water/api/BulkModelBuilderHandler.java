@@ -2,12 +2,11 @@ package water.api;
 
 import hex.ModelBuilder;
 import water.api.schemas3.SegmentModelsParametersV3;
-import hex.SegmentModels;
-import hex.SegmentModelsBuilder;
+import hex.segments.SegmentModels;
+import hex.segments.SegmentModelsBuilder;
 import hex.schemas.ModelBuilderSchema;
 import water.H2O;
 import water.Job;
-import water.Key;
 import water.api.schemas3.JobV3;
 import water.api.schemas3.ModelParametersSchemaV3;
 

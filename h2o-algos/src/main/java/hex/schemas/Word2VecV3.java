@@ -46,7 +46,7 @@ public class Word2VecV3 extends ModelBuilderSchema<Word2Vec,Word2VecV3,Word2VecV
     @API(help="Set the starting learning rate")
     public float init_learning_rate;
 
-    @API(help="Use the Skip-Gram model", values = {"SkipGram", "CBOW"})
+    @API(help="The word model to use (SkipGram or CBOW)", values = {"SkipGram", "CBOW"})
     public Word2Vec.WordModel word_model;
 
     @API(help="Id of a data frame that contains a pre-trained (external) word2vec model")

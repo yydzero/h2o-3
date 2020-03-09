@@ -356,8 +356,8 @@ public class ModelBuilderTest extends TestUtil {
     }
   }
   public static abstract class DummyAction<T> extends Iced<DummyAction<T>> {
-    abstract String run(DummyModelParameters parms);
-    void cleanUp() {};
+    protected abstract String run(DummyModelParameters parms);
+    protected void cleanUp() {};
   }
   private static class MessageInstallAction extends DummyAction<MessageInstallAction> {
     private final Key _trgt;
@@ -369,7 +369,7 @@ public class ModelBuilderTest extends TestUtil {
     }
 
     @Override
-    String run(DummyModelParameters parms) {
+    protected String run(DummyModelParameters parms) {
       DKV.put(_trgt, new BufferedString("Computed " + _msg));
       return _msg;
     }

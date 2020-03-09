@@ -1,5 +1,6 @@
-package hex;
+package hex.segments;
 
+import hex.ModelBuilderTest;
 import hex.segments.SegmentModels;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -74,7 +75,7 @@ public class SegmentModelsTest {
               .withColNames("col_0", "Status", "Model", "Errors", "Warnings")
               .withDataForCol(0, new String[]{"seg_A", "seg_B", "seg_C"})
               .withDataForCol(1, new String[]{"SUCCEEDED", null, "PENDING"})
-              .withDataForCol(2, new String[]{dmbA._result.toString(), null, dmbC._result.toString()})
+              .withDataForCol(2, new String[]{dmbA.dest().toString(), null, dmbC.dest().toString()})
               .withDataForCol(3, new String[]{null, null, null})
               .withDataForCol(4, new String[]{null, null, null})
               .build();

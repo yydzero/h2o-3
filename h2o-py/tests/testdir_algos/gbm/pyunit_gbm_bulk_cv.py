@@ -13,7 +13,7 @@ def test_gbm_bulk_cv():
     titanic[response] = titanic[response].asfactor()
     predictors = ["survived", "name", "sex", "age", "sibsp", "parch", "ticket", "fare", "cabin"]
     train, valid = titanic.split_frame(ratios=[.8], seed=1234)
-    titanic_gbm = H2OGradientBoostingEstimator(seed=1234, nfolds=2)
+    titanic_gbm = H2OGradientBoostingEstimator(seed=1234, nfolds=2, build_tree_one_node=True)
     titanic_gbm.bulk_train(segments=["pclass"],
                            x=predictors,
                            y=response,

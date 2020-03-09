@@ -11,28 +11,31 @@ import water.util.Log;
 
 import java.util.Arrays;
 
-public class LocalSequentialSegmentModelsBuilder {
+class LocalSequentialSegmentModelsBuilder extends Iced<LocalSequentialSegmentModelsBuilder> {
 
   private final Job<SegmentModels> _job;
   private final Model.Parameters _blueprint_parms;
   private final Frame _segments;
   private final Frame _full_train;
   private final Frame _full_valid;
+  private final WorkAllocator _allocator;
 
-  public LocalSequentialSegmentModelsBuilder(Job<SegmentModels> job, Model.Parameters blueprint_parms,
-                                             Frame segments, Frame fullTrain, Frame fullValid) {
+  LocalSequentialSegmentModelsBuilder(Job<SegmentModels> job, Model.Parameters blueprint_parms,
+                                             Frame segments, Frame fullTrain, Frame fullValid,
+                                             WorkAllocator allocator) {
     _job = job;
     _blueprint_parms = blueprint_parms;
     _segments = segments;
     _full_train = fullTrain;
     _full_valid = fullValid;
+    _allocator = allocator;
   }
 
   void buildModels(SegmentModels segmentModels) {
     Vec.Reader[] segmentVecReaders = new Vec.Reader[_segments.numCols()];
     for (int i = 0; i < segmentVecReaders.length; i++)
       segmentVecReaders[i] = _segments.vec(i).new Reader();
-    for (long segmentIdx = 0; segmentIdx < _segments.numRows(); segmentIdx++) {
+    for (long segmentIdx = _allocator.getNextWorkItem(); segmentIdx < _allocator.getMaxWork(); segmentIdx = _allocator.getNextWorkItem()) {
       if (_job.stop_requested())
         throw new Job.JobCancelledException();  // Handle end-user cancel request
 

@@ -1,7 +1,6 @@
-package hex;
+package hex.segments;
 
-import hex.segments.SegmentModels;
-import hex.segments.SegmentModelsBuilder;
+import hex.ModelBuilderTest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import water.DKV;
@@ -66,7 +65,7 @@ public class SegmentModelsBuilderTest {
 
   private static class GetSegment extends ModelBuilderTest.DummyAction<GetSegment> {
     @Override
-    String run(ModelBuilderTest.DummyModelParameters parms) {
+    protected String run(ModelBuilderTest.DummyModelParameters parms) {
       Vec segmentVec = parms.train().vec("class");
       assertTrue(segmentVec.isConst());
       return segmentVec.domain()[(int) segmentVec.at(0)];

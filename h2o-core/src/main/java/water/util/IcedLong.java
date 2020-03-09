@@ -20,7 +20,9 @@ public class IcedLong extends Iced {
     return new IcedLong(value);
   }
 
-  public long incrementAndGet(Key<IcedLong> key)
+  public static long incrementAndGet(Key key) {
+    return ((AtomicIncrementAndGet) new AtomicIncrementAndGet().invoke(key))._val;
+  }
 
   public static class AtomicIncrementAndGet extends TAtomic<IcedLong> {
     public AtomicIncrementAndGet() {

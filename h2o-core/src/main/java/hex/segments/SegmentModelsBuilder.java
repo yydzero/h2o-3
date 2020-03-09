@@ -4,7 +4,6 @@ import hex.Model;
 import water.*;
 import water.fvec.Frame;
 import water.rapids.ast.prims.mungers.AstGroup;
-import water.util.IcedLong;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -70,7 +69,7 @@ public class SegmentModelsBuilder {
     private final Frame _segments;
     private final Frame _full_train;
     private final Frame _full_valid;
-    private final IcedLong _work_allocator;
+    private final Key _counter_key;
 
     private SegmentModelsBuilderTask(Job<SegmentModels> job, Frame segments,
                                      Key<Frame> train, Key<Frame> valid) {
@@ -78,7 +77,7 @@ public class SegmentModelsBuilder {
       _segments = segments;
       _full_train = reorderColumns(train);
       _full_valid = reorderColumns(valid);
-      _work_allocator = new IcedLong(-1);
+      _counter_key = Key.make();
     }
 
     @Override
@@ -86,13 +85,16 @@ public class SegmentModelsBuilder {
       try {
         _blueprint_parms.read_lock_frames(_job);
         SegmentModels segmentModels = SegmentModels.make(_job._result, _segments);
-        new LocalSequentialSegmentModelsBuilder(_job, _blueprint_parms, _segments, _full_train, _full_valid).
-                buildModels(segmentModels);
+        WorkAllocator allocator = new WorkAllocator(_counter_key, _segments.numRows());
+        LocalSequentialSegmentModelsBuilder localBuilder = new LocalSequentialSegmentModelsBuilder(
+                _job, _blueprint_parms, _segments, _full_train, _full_valid, allocator);
+        new MultiNodeRunner(localBuilder, segmentModels).doAllNodes();
       } finally {
         _blueprint_parms.read_unlock_frames(_job);
         if (_segments._key == null) { // segments frame was auto-generated 
           _segments.remove();
         }
+        DKV.remove(_counter_key);
       }
       tryComplete();
     }
@@ -112,7 +114,22 @@ public class SegmentModelsBuilder {
     }
 
   }
-  
+
+  private static class MultiNodeRunner extends MRTask<MultiNodeRunner> {
+    LocalSequentialSegmentModelsBuilder _builder;
+    SegmentModels _segment_models;
+
+    private MultiNodeRunner(LocalSequentialSegmentModelsBuilder builder, SegmentModels segmentModels) {
+      _builder = builder;
+      _segment_models = segmentModels;
+    }
+
+    @Override
+    protected void setupLocal() {
+      _builder.buildModels(_segment_models);
+    }
+  }
+
   public static class SegmentModelsParameters extends Iced<SegmentModelsParameters> {
     Key<SegmentModels> _segment_models_id;
     Key<Frame> _segments;

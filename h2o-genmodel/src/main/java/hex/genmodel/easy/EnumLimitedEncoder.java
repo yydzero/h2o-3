@@ -7,12 +7,11 @@ public class EnumLimitedEncoder implements CategoricalEncoder {
 
   private final String columnName;
   private final int targetIndex;
-  private final Map<String, Integer> domainMap;
+  private final Map<String, Integer> domainMap = new HashMap<>();
   
   EnumLimitedEncoder(String columnName, int targetIndex, String[] domainValues, String[] newDomainValues) {
     this.columnName = columnName;
     this.targetIndex = targetIndex;
-    domainMap = new HashMap<>(domainValues.length);
     
     for (int j = 0; j < newDomainValues.length; j++) {
       domainMap.put(newDomainValues[j],j);

@@ -25,7 +25,7 @@ Defining a Word2vec Model
 
 - **min_word_freq**: Specify an integer for the minimum word frequency. Word2vec will discard words that appear less than this number of times.
 
-- **word_model**: Specify "SkipGram" to use the Skip-Gram model when producing a distributed representation of words. When enabled, the model uses each word to predict the surrounding window of context words. The skip-gram architecture weighs close context words more heavily than more distant context words. Using Skip-Gram can increase model build time but performs better for infrequently used words. **NOTE**: This option is specified by default and cannot be disabled. It is currently the only approach supported in H2O. 
+- **word_model**: Specify "SkipGram" to use the Skip-Gram model when producing a distributed representation of words. When enabled, the model uses each word to predict the surrounding window of context words. The skip-gram architecture weighs close context words more heavily than more distant context words. Using Skip-Gram can increase model build time but performs better for infrequently used words. Specify "CBOW" to use continuous bag-of-words model, in which case the surrounding context words are used without taking the distance into account.
 
 - **norm_model**: Specify "HSM" to use Hierarchical Softmax. When enabled, Word2vec uses a `Huffman tree <https://en.wikipedia.org/wiki/Huffman_coding>`__ to reduce calculations when approximating the conditional log-likelihood that the model is attempting to maximize. This option is useful for infrequent words, but this option becomes less useful as training epochs increase. **NOTE**: This option is specified by default and cannot be disabled. It is currently the only approach supported in H2O. 
 

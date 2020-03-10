@@ -7,14 +7,19 @@ import java.util.Map;
 
 public class EnumEncoderColumnMapper {
 
-  private final GenModel _m;
+  final GenModel _m;
+  String[] modelColumnNames;
 
   public EnumEncoderColumnMapper(GenModel m) {
     _m = m;
+    initModelColumnNames();
   }
 
+  public void initModelColumnNames() {
+    modelColumnNames = _m.getNames();
+  }
+  
   public Map<String, Integer> create() {
-    String[] modelColumnNames = _m.getNames();
     Map<String, Integer> modelColumnNameToIndexMap = new HashMap<>(modelColumnNames.length);
     for (int i = 0; i < modelColumnNames.length; i++) {
       modelColumnNameToIndexMap.put(modelColumnNames[i], i);
